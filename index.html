@@ -3,508 +3,342 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AirSense — Hyper-Heuristic AQI Monitor</title>
+<title>AirSense v3 — Complete Air Quality Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #04080f;
-    --panel: #080e1a;
-    --panel2: #0b1220;
-    --border: #1a2a3a;
-    --border2: #0f1f2e;
-    --accent: #00d4ff;
-    --accent2: #00ff9d;
-    --accent3: #ff6b35;
-    --warn: #ffb800;
-    --danger: #ff3060;
-    --text: #c8dde8;
-    --muted: #4a6070;
-    --glow: rgba(0, 212, 255, 0.15);
-    --glow2: rgba(0, 255, 157, 0.1);
-  }
+:root{
+  --bg:#04080f;--panel:#080e1a;--panel2:#0b1220;--panel3:#0d1528;
+  --border:#1a2a3a;--border2:#0f1f2e;--border3:#162236;
+  --accent:#00d4ff;--accent2:#00ff9d;--accent3:#ff6b35;
+  --warn:#ffb800;--danger:#ff3060;--purple:#9c6dff;
+  --text:#c8dde8;--muted:#4a6070;--muted2:#2a4050;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;
+  min-height:100vh;overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 15% 5%,rgba(0,212,255,.05) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 95%,rgba(0,255,157,.04) 0%,transparent 60%),
+    repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(0,212,255,.015) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(0,212,255,.015) 40px);
+}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar{width:5px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-    background-image:
-      radial-gradient(ellipse 60% 40% at 20% 10%, rgba(0, 212, 255, 0.04) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 30% at 80% 90%, rgba(0, 255, 157, 0.03) 0%, transparent 60%),
-      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,212,255,0.02) 40px),
-      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,212,255,0.02) 40px);
-  }
+/* ═══ HEADER ═══ */
+header{display:flex;align-items:center;justify-content:space-between;
+  padding:15px 28px;border-bottom:1px solid var(--border);
+  background:rgba(4,8,15,.97);backdrop-filter:blur(16px);
+  position:sticky;top:0;z-index:200}
+.logo{font-family:'Orbitron',monospace;font-size:1.15rem;font-weight:900;
+  color:var(--accent);letter-spacing:3px;text-shadow:0 0 24px rgba(0,212,255,.7)}
+.logo em{color:var(--accent2);font-style:normal}
+.logo small{font-size:.42rem;color:var(--accent3);letter-spacing:2px;margin-left:6px;vertical-align:middle}
+.header-right{display:flex;align-items:center;gap:18px}
+.live-badge{display:flex;align-items:center;gap:6px;
+  font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--accent2);letter-spacing:2px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);
+  box-shadow:0 0 10px var(--accent2);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+#clock{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--muted)}
 
-  /* ─── HEADER ─── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 32px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(8,14,26,0.95);
-    backdrop-filter: blur(12px);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .logo {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.3rem;
-    font-weight: 900;
-    color: var(--accent);
-    letter-spacing: 3px;
-    text-shadow: 0 0 20px rgba(0,212,255,0.6);
-  }
-  .logo span { color: var(--accent2); }
-  .header-right {
-    display: flex; align-items: center; gap: 24px;
-  }
-  .live-badge {
-    display: flex; align-items: center; gap: 8px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.75rem; color: var(--accent2);
-    letter-spacing: 2px;
-  }
-  .live-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--accent2);
-    box-shadow: 0 0 10px var(--accent2);
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,100%{ opacity:1; transform:scale(1); }
-    50%{ opacity:0.4; transform:scale(0.7); }
-  }
-  #clock {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.85rem; color: var(--muted);
-  }
+/* ═══ NAV TABS ═══ */
+.nav-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);
+  background:rgba(8,14,26,.95);padding:0 28px;position:sticky;top:53px;z-index:190;
+  overflow-x:auto}
+.nav-tabs::-webkit-scrollbar{height:2px}
+.nav-tab{padding:11px 20px;font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:700;
+  letter-spacing:1.5px;color:var(--muted);cursor:pointer;border:none;background:transparent;
+  border-bottom:2px solid transparent;transition:all .25s;white-space:nowrap;text-transform:uppercase}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 
-  /* ─── SEARCH BAR ─── */
-  .search-section {
-    padding: 20px 32px;
-    display: flex; gap: 12px; align-items: center;
-  }
-  .search-input {
-    flex: 1; max-width: 400px;
-    background: var(--panel2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 10px 16px;
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .search-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(0,212,255,0.15);
-  }
-  .search-input::placeholder { color: var(--muted); }
-  .btn {
-    padding: 10px 24px;
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-    text-transform: uppercase;
-  }
-  .btn:hover {
-    background: rgba(0,212,255,0.1);
-    box-shadow: 0 0 20px rgba(0,212,255,0.2);
-  }
-  .btn.active {
-    background: rgba(0,212,255,0.15);
-    box-shadow: 0 0 20px rgba(0,212,255,0.3);
-  }
-  .api-key-note {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.7rem; color: var(--muted);
-    padding: 0 32px 8px;
-  }
-  .api-key-note a { color: var(--accent); text-decoration: none; }
+/* ═══ SECTIONS ═══ */
+.section{display:none;padding:20px 28px 40px;animation:fadeIn .35s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-  /* ─── MAIN GRID ─── */
-  .main {
-    padding: 0 32px 40px;
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 20px;
-  }
+/* ═══ PANEL BASE ═══ */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:18px;position:relative;overflow:hidden;margin-bottom:14px}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.3}
+.pt{font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:3px;
+  color:var(--muted);text-transform:uppercase;margin-bottom:13px}
+.pt-icon{margin-right:6px}
 
-  /* ─── PANEL BASE ─── */
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-  }
-  .panel::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0.4;
-  }
-  .panel-title {
-    font-family: 'Orbitron', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 3px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 16px;
-  }
+/* ═══ GRID HELPERS ═══ */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid-left{display:grid;grid-template-columns:300px 1fr;gap:14px}
 
-  /* ─── LEFT COLUMN ─── */
-  .left-col { display: flex; flex-direction: column; gap: 16px; }
+/* ═══ SEARCH ═══ */
+.search-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:14px 18px;margin-bottom:16px}
+.search-input{flex:1;min-width:200px;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:6px;padding:9px 14px;color:var(--text);
+  font-family:'Rajdhani',sans-serif;font-size:.95rem;outline:none;transition:all .2s}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,.12)}
+.search-input::placeholder{color:var(--muted)}
+.btn{padding:9px 20px;background:transparent;border:1px solid var(--accent);color:var(--accent);
+  font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:2px;
+  cursor:pointer;border-radius:6px;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.btn:hover{background:rgba(0,212,255,.1);box-shadow:0 0 16px rgba(0,212,255,.2)}
+.btn-sm{padding:6px 14px;font-size:.75rem;letter-spacing:1px}
+.btn-green{border-color:var(--accent2);color:var(--accent2)}
+.btn-green:hover{background:rgba(0,255,157,.1)}
 
-  /* AQI GAUGE */
-  .aqi-panel { text-align: center; }
-  .gauge-wrap {
-    position: relative;
-    display: inline-block;
-    margin: 10px auto;
-  }
-  canvas#gaugeCanvas {
-    display: block;
-  }
-  .gauge-center {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -52%);
-    text-align: center;
-  }
-  .aqi-value {
-    font-family: 'Orbitron', monospace;
-    font-size: 3rem;
-    font-weight: 900;
-    line-height: 1;
-    transition: color 0.5s;
-  }
-  .aqi-label {
-    font-size: 0.75rem;
-    letter-spacing: 2px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-  .aqi-category {
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-top: 8px;
-    transition: color 0.5s;
-  }
-  .location-name {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-top: 6px;
-  }
+/* ═══ AQI GAUGE ═══ */
+.aqi-panel{text-align:center}
+.gauge-wrap{position:relative;display:inline-block;margin:6px auto}
+.gauge-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-52%);text-align:center}
+.aqi-value{font-family:'Orbitron',monospace;font-size:2.6rem;font-weight:900;line-height:1;transition:color .5s}
+.aqi-lbl{font-size:.68rem;letter-spacing:2px;color:var(--muted);margin-top:2px}
+.aqi-cat{font-size:.92rem;font-weight:700;letter-spacing:1px;margin-top:5px;transition:color .5s}
+.loc{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--muted);margin-top:4px}
 
-  /* POLLUTANTS */
-  .pollutant-item {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 12px;
-  }
-  .poll-name {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--accent);
-    width: 48px; flex-shrink: 0;
-  }
-  .poll-bar-wrap {
-    flex: 1; height: 6px;
-    background: var(--border2);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .poll-bar {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 1s cubic-bezier(0.4,0,0.2,1);
-  }
-  .poll-val {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.75rem;
-    color: var(--text);
-    width: 60px; text-align: right;
-  }
+/* ═══ POLLUTANTS ═══ */
+.poll-item{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.poll-nm{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--accent);width:40px;flex-shrink:0}
+.poll-bw{flex:1;height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.poll-b{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.poll-v{font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--text);width:70px;text-align:right}
 
-  /* WEATHER */
-  .weather-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .weather-item {
-    background: var(--panel2);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 10px 12px;
-  }
-  .weather-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .weather-val {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--accent2);
-    margin-top: 4px;
-  }
+/* ═══ WEATHER GRID ═══ */
+.wx-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.wx-item{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px}
+.wx-lbl{font-family:'Share Tech Mono',monospace;font-size:.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.wx-val{font-family:'Orbitron',monospace;font-size:.92rem;font-weight:700;color:var(--accent2);margin-top:2px}
 
-  /* ─── RIGHT COLUMN ─── */
-  .right-col { display: flex; flex-direction: column; gap: 16px; }
+/* ═══ CHART TABS ═══ */
+.chart-tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab-btn{padding:5px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);
+  font-family:'Rajdhani',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1px;
+  cursor:pointer;border-radius:4px;transition:all .2s}
+.tab-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.08)}
 
-  /* CHART */
-  .chart-tabs {
-    display: flex; gap: 8px; margin-bottom: 16px;
-  }
-  .tab-btn {
-    padding: 6px 16px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-  }
-  .tab-btn.active {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(0,212,255,0.08);
-  }
-  canvas#aqiChart { width: 100% !important; }
+/* ═══ PREDICTION ═══ */
+.pred-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.model-badge{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;
+  color:var(--accent3);border:1px solid rgba(255,107,53,.3);padding:3px 9px;
+  border-radius:12px;background:rgba(255,107,53,.06)}
+.stats-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  background:var(--panel2);border:1px solid var(--border2);border-radius:5px;padding:7px 11px;margin-bottom:11px}
+.pred-scroll{overflow-x:auto;padding-bottom:5px}
+.pred-scroll::-webkit-scrollbar{height:3px}
+.pred-row{display:flex;gap:6px;min-width:max-content}
+.pred-card{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;
+  padding:8px 6px;text-align:center;min-width:64px;transition:border-color .25s,transform .2s;flex-shrink:0}
+.pred-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.pred-card.anom{border-color:rgba(255,48,96,.5);background:rgba(255,48,96,.06)}
+.p-hr{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--muted)}
+.p-aqi{font-family:'Orbitron',monospace;font-size:.9rem;font-weight:700;margin:4px 0 1px}
+.p-ci{font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--muted)}
+.p-cat{font-size:.56rem;font-weight:600;margin:2px 0}
+.p-dot{width:5px;height:5px;border-radius:50%;margin:2px auto 0}
+.p-flag{font-size:.62rem;margin-top:2px;animation:blink 1s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-  /* PREDICTION */
-  .prediction-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 16px;
-  }
-  .model-badge {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 2px;
-    color: var(--accent3);
-    border: 1px solid rgba(255,107,53,0.3);
-    padding: 3px 10px;
-    border-radius: 12px;
-    background: rgba(255,107,53,0.05);
-  }
-  .pred-grid {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
-  }
-  .pred-card {
-    background: var(--panel2);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 10px 6px;
-    text-align: center;
-    transition: border-color 0.3s, transform 0.2s;
-  }
-  .pred-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-  }
-  .pred-hour {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.6rem;
-    color: var(--muted);
-  }
-  .pred-aqi {
-    font-family: 'Orbitron', monospace;
-    font-size: 1rem;
-    font-weight: 700;
-    margin: 6px 0 4px;
-  }
-  .pred-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    margin: 0 auto;
-  }
+/* ═══ ALGO GRID ═══ */
+.algo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.algo-card{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;padding:10px}
+.algo-card.star{border-color:rgba(255,107,53,.4);background:rgba(255,107,53,.05)}
+.a-nm{font-family:'Share Tech Mono',monospace;font-size:.59rem;color:var(--accent);letter-spacing:1px;margin-bottom:4px}
+.a-bw{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;margin-bottom:4px}
+.a-b{height:100%;border-radius:2px;transition:width 1.5s cubic-bezier(.4,0,.2,1)}
+.a-sc{font-family:'Orbitron',monospace;font-size:.82rem;font-weight:700;color:var(--text)}
+.a-lb{font-size:.62rem;color:var(--muted);margin-top:1px}
+.acc-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:11px}
+.acc-card{background:var(--panel2);border:1px solid var(--border2);border-radius:5px;padding:9px;text-align:center}
+.acc-lbl{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--muted);letter-spacing:1px}
+.acc-val{font-family:'Orbitron',monospace;font-size:.95rem;font-weight:700;margin-top:3px}
 
-  /* ALGORITHM STATUS */
-  .algo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-  .algo-card {
-    background: var(--panel2);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 12px;
-  }
-  .algo-name {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--accent);
-    letter-spacing: 1px;
-    margin-bottom: 6px;
-  }
-  .algo-bar-wrap {
-    height: 4px;
-    background: var(--border2);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-bottom: 6px;
-  }
-  .algo-bar {
-    height: 100%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
-  }
-  .algo-score {
-    font-family: 'Orbitron', monospace;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text);
-  }
-  .algo-label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    margin-top: 2px;
-  }
+/* ═══ PRECAUTIONS SECTION ═══ */
+.prec-aqi-scale{display:flex;gap:0;border-radius:8px;overflow:hidden;margin-bottom:16px}
+.prec-aqi-band{flex:1;padding:10px 6px;text-align:center;cursor:pointer;transition:opacity .2s}
+.prec-aqi-band:hover{opacity:.85}
+.prec-aqi-band.selected{outline:2px solid #fff;outline-offset:-2px}
+.pab-label{font-family:'Orbitron',monospace;font-size:.55rem;font-weight:700;color:#000;letter-spacing:1px}
+.pab-range{font-family:'Share Tech Mono',monospace;font-size:.52rem;color:rgba(0,0,0,.7)}
 
-  /* ─── LOADING / ERROR ─── */
-  .status-overlay {
-    position: fixed; inset: 0;
-    background: rgba(4,8,15,0.9);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 999;
-    transition: opacity 0.4s;
-  }
-  .status-overlay.hidden { opacity: 0; pointer-events: none; }
-  .spinner {
-    width: 60px; height: 60px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-bottom: 20px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .status-text {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.9rem;
-    color: var(--accent);
-    letter-spacing: 2px;
-  }
+.prec-detail{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:18px;margin-bottom:14px;transition:all .3s}
+.prec-title{font-family:'Orbitron',monospace;font-size:.85rem;font-weight:700;letter-spacing:2px;margin-bottom:4px}
+.prec-sub{font-size:.8rem;color:var(--muted);margin-bottom:14px}
 
-  /* API Key Modal */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(4,8,15,0.85);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200;
-    backdrop-filter: blur(4px);
-  }
-  .modal-overlay.hidden { display: none; }
-  .modal {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 32px;
-    width: 480px;
-    max-width: 90vw;
-  }
-  .modal h2 {
-    font-family: 'Orbitron', monospace;
-    font-size: 1rem;
-    color: var(--accent);
-    letter-spacing: 3px;
-    margin-bottom: 12px;
-  }
-  .modal p {
-    font-size: 0.9rem;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-bottom: 20px;
-  }
-  .modal input {
-    width: 100%;
-    background: var(--panel2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 10px 14px;
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.85rem;
-    outline: none;
-    margin-bottom: 16px;
-  }
-  .modal input:focus { border-color: var(--accent); }
-  .modal-btns { display: flex; gap: 10px; }
-  .btn-demo {
-    padding: 10px 20px;
-    background: rgba(0,255,157,0.08);
-    border: 1px solid var(--accent2);
-    color: var(--accent2);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    cursor: pointer;
-    border-radius: 4px;
-  }
+.prec-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.prec-card{background:var(--panel3);border:1px solid var(--border3);border-radius:7px;padding:13px}
+.prec-card-icon{font-size:1.4rem;margin-bottom:6px}
+.prec-card-title{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:700;
+  color:var(--accent);letter-spacing:1px;margin-bottom:6px}
+.prec-card ul{list-style:none;padding:0}
+.prec-card ul li{font-size:.78rem;color:var(--text);padding:3px 0;padding-left:12px;position:relative;line-height:1.4}
+.prec-card ul li::before{content:'›';position:absolute;left:0;color:var(--accent2)}
 
-  /* scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* ═══ REMEDIES SECTION ═══ */
+.remedy-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.remedy-tab{padding:7px 16px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:600;
+  cursor:pointer;border-radius:20px;transition:all .2s;letter-spacing:1px}
+.remedy-tab.active{background:rgba(0,255,157,.1);border-color:var(--accent2);color:var(--accent2)}
+.remedy-content{display:none;animation:fadeIn .3s ease}
+.remedy-content.active{display:block}
+.remedy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.remedy-card{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:15px;
+  transition:border-color .2s,transform .2s}
+.remedy-card:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.r-icon{font-size:1.6rem;margin-bottom:8px}
+.r-title{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;
+  color:var(--accent2);letter-spacing:1px;margin-bottom:8px}
+.r-body{font-size:.78rem;color:var(--text);line-height:1.55}
+.r-tag{display:inline-block;padding:2px 8px;border-radius:10px;font-family:'Share Tech Mono',monospace;
+  font-size:.55rem;letter-spacing:1px;margin-top:8px}
 
-  /* AQI colors */
-  .aqi-good { color: #00e676; }
-  .aqi-moderate { color: #ffee58; }
-  .aqi-usg { color: #ff9800; }
-  .aqi-unhealthy { color: #f44336; }
-  .aqi-very-unhealthy { color: #9c27b0; }
-  .aqi-hazardous { color: #7b1fa2; }
+/* ═══ DAILY LIFE SECTION ═══ */
+.daily-timeline{position:relative;padding-left:30px}
+.daily-timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;
+  width:1px;background:linear-gradient(to bottom,var(--accent),var(--accent2),transparent)}
+.timeline-item{position:relative;margin-bottom:16px}
+.timeline-dot{position:absolute;left:-24px;top:4px;width:10px;height:10px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 8px var(--accent);border:2px solid var(--bg)}
+.timeline-time{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--accent);
+  letter-spacing:2px;margin-bottom:4px}
+.timeline-card{background:var(--panel2);border:1px solid var(--border2);border-radius:7px;padding:12px}
+.timeline-title{font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.timeline-body{font-size:.77rem;color:var(--muted);line-height:1.5}
+.timeline-tips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tip-chip{padding:3px 9px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);
+  border-radius:12px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--accent)}
 
-  @media (max-width: 900px) {
-    .main { grid-template-columns: 1fr; }
-    .pred-grid { grid-template-columns: repeat(4, 1fr); }
-    .algo-grid { grid-template-columns: repeat(2, 1fr); }
-  }
+.daily-checklist{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check-item{display:flex;align-items:flex-start;gap:10px;background:var(--panel2);
+  border:1px solid var(--border2);border-radius:6px;padding:10px 12px;cursor:pointer;
+  transition:border-color .2s}
+.check-item:hover{border-color:var(--accent)}
+.check-item input[type=checkbox]{accent-color:var(--accent2);width:14px;height:14px;flex-shrink:0;margin-top:2px}
+.check-label{font-size:.78rem;color:var(--text);line-height:1.4}
+.check-label strong{color:var(--accent2);font-size:.75rem;font-family:'Share Tech Mono',monospace;display:block;margin-bottom:2px}
+
+/* ═══ WORKFLOW SECTION ═══ */
+.workflow-wrap{background:var(--panel2);border:1px solid var(--border2);border-radius:10px;
+  padding:20px;overflow-x:auto}
+.wf-stage{display:flex;align-items:stretch;gap:0;margin-bottom:16px}
+.wf-node{background:var(--panel3);border:1px solid var(--border3);border-radius:7px;padding:12px 14px;
+  min-width:150px;position:relative;flex-shrink:0}
+.wf-node.accent{border-color:rgba(0,212,255,.4);background:rgba(0,212,255,.06)}
+.wf-node.green{border-color:rgba(0,255,157,.4);background:rgba(0,255,157,.06)}
+.wf-node.orange{border-color:rgba(255,107,53,.4);background:rgba(255,107,53,.06)}
+.wf-node.warn{border-color:rgba(255,184,0,.4);background:rgba(255,184,0,.06)}
+.wf-node.danger{border-color:rgba(255,48,96,.4);background:rgba(255,48,96,.06)}
+.wf-arrow{display:flex;align-items:center;padding:0 6px;color:var(--muted);font-size:1rem;flex-shrink:0}
+.wf-label{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--accent);
+  letter-spacing:1px;margin-bottom:4px;text-transform:uppercase}
+.wf-title{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.wf-body{font-size:.72rem;color:var(--muted);line-height:1.4}
+.wf-row{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:6px}
+.wf-row::-webkit-scrollbar{height:3px}
+.wf-section-title{font-family:'Orbitron',monospace;font-size:.62rem;letter-spacing:3px;
+  color:var(--accent3);text-transform:uppercase;margin:18px 0 10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border2)}
+.wf-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border2)}
+.wf-leg-item{display:flex;align-items:center;gap:7px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)}
+.wf-leg-dot{width:10px;height:10px;border-radius:3px}
+
+/* ═══ ABOUT SECTION ═══ */
+.about-hero{background:linear-gradient(135deg,rgba(0,212,255,.06) 0%,rgba(0,255,157,.04) 100%);
+  border:1px solid rgba(0,212,255,.2);border-radius:10px;padding:28px;text-align:center;margin-bottom:18px}
+.about-hero h1{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;
+  color:var(--accent);letter-spacing:4px;text-shadow:0 0 30px rgba(0,212,255,.5);margin-bottom:8px}
+.about-hero p{font-size:.9rem;color:var(--muted);max-width:600px;margin:0 auto;line-height:1.6}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.feature-card{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:16px;
+  text-align:center;transition:border-color .2s,transform .2s}
+.feature-card:hover{border-color:var(--accent);transform:translateY(-3px)}
+.f-icon{font-size:1.8rem;margin-bottom:8px}
+.f-title{font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;color:var(--accent);
+  letter-spacing:1px;margin-bottom:6px}
+.f-body{font-size:.76rem;color:var(--muted);line-height:1.5}
+.tech-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.tech-badge{padding:4px 12px;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:12px;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--accent2)}
+
+/* ═══ LOADING / MODAL ═══ */
+.status-overlay{position:fixed;inset:0;background:rgba(4,8,15,.94);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .4s}
+.status-overlay.hidden{opacity:0;pointer-events:none}
+.spinner{width:52px;height:52px;border:2px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.s-txt{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--accent);letter-spacing:2px}
+.s-sub{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);margin-top:7px}
+.modal-overlay{position:fixed;inset:0;background:rgba(4,8,15,.9);display:flex;
+  align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(5px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:28px;width:460px;max-width:90vw}
+.modal h2{font-family:'Orbitron',monospace;font-size:.88rem;color:var(--accent);letter-spacing:3px;margin-bottom:10px}
+.modal p{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.modal input{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:5px;
+  padding:9px 12px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.8rem;
+  outline:none;margin-bottom:13px}
+.modal input:focus{border-color:var(--accent)}
+.modal-btns{display:flex;gap:9px}
+.btn-demo{padding:9px 17px;background:rgba(0,255,157,.08);border:1px solid var(--accent2);
+  color:var(--accent2);font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;
+  letter-spacing:1px;cursor:pointer;border-radius:6px;white-space:nowrap}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:960px){
+  .grid-left,.grid2,.grid3,.grid4{grid-template-columns:1fr}
+  .algo-grid,.prec-cards,.remedy-grid,.feature-grid{grid-template-columns:1fr 1fr}
+  .acc-row,.daily-checklist{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  .algo-grid,.prec-cards,.remedy-grid,.feature-grid,.acc-row,.daily-checklist{grid-template-columns:1fr}
+  .nav-tab{padding:9px 13px;font-size:.74rem}
+}
+
+/* ═══ HEALTH INDICATOR STRIP ═══ */
+.health-strip{display:flex;border-radius:6px;overflow:hidden;height:8px;margin-bottom:10px}
+.hs-seg{flex:1;transition:opacity .3s}
+.hs-seg.inactive{opacity:.25}
+
+/* ═══ IMPACT METER ═══ */
+.impact-meters{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.impact-card{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;
+  padding:10px;text-align:center}
+.impact-icon{font-size:1.2rem;margin-bottom:4px}
+.impact-lbl{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--muted);letter-spacing:1px}
+.impact-val{font-family:'Orbitron',monospace;font-size:.85rem;font-weight:700;margin-top:3px}
+
+/* ═══ AQI LEGEND ═══ */
+.aqi-legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.aql-item{display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)}
+.aql-dot{width:8px;height:8px;border-radius:50%}
 </style>
 </head>
 <body>
 
-<!-- LOADING OVERLAY -->
+<!-- LOADING -->
 <div class="status-overlay hidden" id="loadingOverlay">
   <div class="spinner"></div>
-  <div class="status-text" id="loadingText">INITIALIZING SENSORS</div>
+  <div class="s-txt" id="loadingText">INITIALIZING AIRSENSE</div>
+  <div class="s-sub" id="loadingSub"></div>
 </div>
 
-<!-- API KEY MODAL -->
+<!-- API MODAL -->
 <div class="modal-overlay" id="apiModal">
   <div class="modal">
-    <h2>⚡ AIRSENSE SETUP</h2>
-    <p>Enter your free <a href="https://openweathermap.org/api/air-pollution" target="_blank" style="color:var(--accent)">OpenWeatherMap API key</a> to fetch real-time AQI data. Or click <strong style="color:var(--accent2)">Use Demo Data</strong> to explore with simulated data.</p>
-    <input type="text" id="apiKeyInput" placeholder="Paste your OWM API key here..." />
+    <h2>⚡ AIRSENSE v3 SETUP</h2>
+    <p>Enter a free <a href="https://openweathermap.org/api/air-pollution" target="_blank" style="color:var(--accent)">OpenWeatherMap API key</a> for live real-time data, or use <strong style="color:var(--accent2)">Demo Mode</strong> with realistic simulated data.</p>
+    <input type="text" id="apiKeyInput" placeholder="Paste your OWM API key here…"/>
     <div class="modal-btns">
-      <button class="btn" onclick="confirmApiKey()">CONNECT</button>
+      <button class="btn" onclick="confirmApiKey()">CONNECT LIVE</button>
       <button class="btn-demo" onclick="useDemoMode()">USE DEMO DATA</button>
     </div>
   </div>
@@ -512,688 +346,1076 @@
 
 <!-- HEADER -->
 <header>
-  <div class="logo">AIR<span>SENSE</span></div>
+  <div class="logo">AIR<em>SENSE</em><small>v3.0</small></div>
   <div class="header-right">
     <div class="live-badge"><div class="live-dot"></div>LIVE</div>
     <div id="clock">--:--:--</div>
+    <button class="btn btn-sm" onclick="openApiModal()" style="border-color:var(--muted);color:var(--muted)">⚙ API</button>
   </div>
 </header>
 
-<!-- SEARCH -->
-<div class="search-section">
-  <input type="text" class="search-input" id="cityInput" placeholder="Enter city (e.g. Mumbai, London, New York)" value="Thiruvananthapuram" />
-  <button class="btn" onclick="fetchData()">FETCH DATA</button>
-  <button class="btn" onclick="openApiModal()" style="border-color:var(--muted);color:var(--muted)">⚙ API KEY</button>
+<!-- NAV TABS -->
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showSection('dashboard',this)">📊 DASHBOARD</button>
+  <button class="nav-tab" onclick="showSection('forecast',this)">🔮 FORECAST</button>
+  <button class="nav-tab" onclick="showSection('precautions',this)">🛡 PRECAUTIONS</button>
+  <button class="nav-tab" onclick="showSection('remedies',this)">💊 REMEDIES</button>
+  <button class="nav-tab" onclick="showSection('dailylife',this)">🌅 DAILY GUIDE</button>
+  <button class="nav-tab" onclick="showSection('workflow',this)">⚙ WORKFLOW</button>
+  <button class="nav-tab" onclick="showSection('about',this)">ℹ ABOUT</button>
 </div>
-<div class="api-key-note">
-  Free API key: <a href="https://home.openweathermap.org/users/sign_up" target="_blank">openweathermap.org</a> &nbsp;|&nbsp;
-  Demo mode available without a key
-</div>
 
-<!-- MAIN -->
-<div class="main">
+<!-- ══════════════════════════════════════ -->
+<!--  SECTION 1: DASHBOARD                 -->
+<!-- ══════════════════════════════════════ -->
+<div class="section active" id="sec-dashboard">
 
-  <!-- LEFT COLUMN -->
-  <div class="left-col">
+  <div class="search-bar">
+    <input type="text" class="search-input" id="cityInput" placeholder="Enter city (e.g. Thiruvananthapuram, Mumbai, London…)" value="Thiruvananthapuram"/>
+    <button class="btn" onclick="fetchData()">⟳ FETCH DATA</button>
+    <button class="btn btn-green btn-sm" onclick="showSection('forecast',document.querySelectorAll('.nav-tab')[1])">VIEW FORECAST →</button>
+  </div>
 
-    <!-- AQI GAUGE -->
-    <div class="panel aqi-panel">
-      <div class="panel-title">◈ AQI INDEX</div>
-      <div class="gauge-wrap">
-        <canvas id="gaugeCanvas" width="220" height="130"></canvas>
-        <div class="gauge-center">
-          <div class="aqi-value" id="aqiValue">---</div>
-          <div class="aqi-label">AQI</div>
+  <div class="grid-left">
+    <div>
+      <!-- AQI GAUGE -->
+      <div class="panel aqi-panel">
+        <div class="pt">◈ REAL-TIME AQI</div>
+        <div class="gauge-wrap">
+          <canvas id="gaugeCanvas" width="208" height="116"></canvas>
+          <div class="gauge-center">
+            <div class="aqi-value" id="aqiValue">---</div>
+            <div class="aqi-lbl">AQI</div>
+          </div>
+        </div>
+        <div class="aqi-cat" id="aqiCat">LOADING…</div>
+        <div class="loc" id="locName">Scanning…</div>
+        <div class="aqi-legend" style="margin-top:10px;justify-content:center">
+          <div class="aql-item"><div class="aql-dot" style="background:#00e676"></div>Good</div>
+          <div class="aql-item"><div class="aql-dot" style="background:#ffee58"></div>Mod</div>
+          <div class="aql-item"><div class="aql-dot" style="background:#ff9800"></div>USG</div>
+          <div class="aql-item"><div class="aql-dot" style="background:#f44336"></div>Unhealthy</div>
+          <div class="aql-item"><div class="aql-dot" style="background:#9c27b0"></div>V.Unhealthy</div>
+          <div class="aql-item"><div class="aql-dot" style="background:#7b1fa2"></div>Hazardous</div>
         </div>
       </div>
-      <div class="aqi-category" id="aqiCategory">LOADING...</div>
-      <div class="location-name" id="locationName">Scanning location...</div>
-    </div>
 
-    <!-- POLLUTANTS -->
-    <div class="panel">
-      <div class="panel-title">◈ POLLUTANT LEVELS</div>
-      <div id="pollutantsContainer">
-        <!-- filled by JS -->
+      <!-- HEALTH IMPACTS -->
+      <div class="panel">
+        <div class="pt">◈ HEALTH RISK LEVEL</div>
+        <div class="health-strip" id="healthStrip">
+          <div class="hs-seg" style="background:#00e676"></div>
+          <div class="hs-seg" style="background:#ffee58"></div>
+          <div class="hs-seg" style="background:#ff9800"></div>
+          <div class="hs-seg" style="background:#f44336"></div>
+          <div class="hs-seg" style="background:#9c27b0"></div>
+          <div class="hs-seg" style="background:#7b1fa2"></div>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);line-height:1.5" id="healthMsg">
+          Loading health assessment…
+        </div>
+        <div class="impact-meters" id="impactMeters">
+          <div class="impact-card"><div class="impact-icon">🫁</div><div class="impact-lbl">RESPIRATORY</div><div class="impact-val" id="imp-resp" style="color:var(--accent2)">--</div></div>
+          <div class="impact-card"><div class="impact-icon">❤️</div><div class="impact-lbl">CARDIAC</div><div class="impact-val" id="imp-card" style="color:var(--accent2)">--</div></div>
+          <div class="impact-card"><div class="impact-icon">👁️</div><div class="impact-lbl">EYE/SKIN</div><div class="impact-val" id="imp-eye" style="color:var(--accent2)">--</div></div>
+          <div class="impact-card"><div class="impact-icon">🧠</div><div class="impact-lbl">NEUROLOGICAL</div><div class="impact-val" id="imp-neuro" style="color:var(--accent2)">--</div></div>
+        </div>
+      </div>
+
+      <!-- WEATHER -->
+      <div class="panel">
+        <div class="pt">◈ ATMOSPHERIC DATA</div>
+        <div class="wx-grid">
+          <div class="wx-item"><div class="wx-lbl">TEMP</div><div class="wx-val" id="wTemp">--°C</div></div>
+          <div class="wx-item"><div class="wx-lbl">HUMIDITY</div><div class="wx-val" id="wHum">--%</div></div>
+          <div class="wx-item"><div class="wx-lbl">WIND</div><div class="wx-val" id="wWnd">-- m/s</div></div>
+          <div class="wx-item"><div class="wx-lbl">PRESSURE</div><div class="wx-val" id="wPres">-- hPa</div></div>
+          <div class="wx-item"><div class="wx-lbl">VISIBILITY</div><div class="wx-val" id="wVis">-- km</div></div>
+          <div class="wx-item"><div class="wx-lbl">UV INDEX</div><div class="wx-val" id="wUV">--</div></div>
+        </div>
       </div>
     </div>
 
-    <!-- WEATHER -->
-    <div class="panel">
-      <div class="panel-title">◈ ATMOSPHERIC DATA</div>
-      <div class="weather-grid" id="weatherGrid">
-        <div class="weather-item"><div class="weather-label">TEMP</div><div class="weather-val" id="wTemp">--°C</div></div>
-        <div class="weather-item"><div class="weather-label">HUMIDITY</div><div class="weather-val" id="wHumidity">--%</div></div>
-        <div class="weather-item"><div class="weather-label">WIND</div><div class="weather-val" id="wWind">-- m/s</div></div>
-        <div class="weather-item"><div class="weather-label">PRESSURE</div><div class="weather-val" id="wPressure">-- hPa</div></div>
-        <div class="weather-item"><div class="weather-label">VISIBILITY</div><div class="weather-val" id="wVis">-- km</div></div>
-        <div class="weather-item"><div class="weather-label">UV INDEX</div><div class="weather-val" id="wUV">--</div></div>
+    <div>
+      <!-- POLLUTANTS -->
+      <div class="panel">
+        <div class="pt">◈ POLLUTANT BREAKDOWN</div>
+        <div id="pollutantsContainer"></div>
+      </div>
+
+      <!-- TIMELINE CHART -->
+      <div class="panel">
+        <div class="pt">◈ AQI TIMELINE</div>
+        <div class="chart-tabs">
+          <button class="tab-btn active" onclick="switchTab(this,'24h')">24 HRS</button>
+          <button class="tab-btn" onclick="switchTab(this,'7d')">7 DAYS</button>
+          <button class="tab-btn" onclick="switchTab(this,'pred')">FORECAST</button>
+        </div>
+        <canvas id="aqiChart" height="160"></canvas>
       </div>
     </div>
-
-  </div>
-
-  <!-- RIGHT COLUMN -->
-  <div class="right-col">
-
-    <!-- HISTORICAL CHART -->
-    <div class="panel">
-      <div class="panel-title">◈ AQI TIMELINE</div>
-      <div class="chart-tabs">
-        <button class="tab-btn active" onclick="switchTab(this,'24h')">24 HRS</button>
-        <button class="tab-btn" onclick="switchTab(this,'7d')">7 DAYS</button>
-        <button class="tab-btn" onclick="switchTab(this,'pred')">FORECAST</button>
-      </div>
-      <canvas id="aqiChart" height="180"></canvas>
-    </div>
-
-    <!-- PREDICTION CARDS -->
-    <div class="panel">
-      <div class="prediction-header">
-        <div class="panel-title" style="margin:0">◈ 8-HOUR FORECAST</div>
-        <div class="model-badge">HYPER-HEURISTIC MODEL</div>
-      </div>
-      <div class="pred-grid" id="predGrid">
-        <!-- filled by JS -->
-      </div>
-    </div>
-
-    <!-- ALGORITHM PERFORMANCE -->
-    <div class="panel">
-      <div class="panel-title">◈ OPTIMIZER ENSEMBLE — HYPER-HEURISTIC ENGINE</div>
-      <div class="algo-grid" id="algoGrid">
-        <!-- filled by JS -->
-      </div>
-    </div>
-
   </div>
 </div>
 
-<!-- CHART.JS -->
+<!-- ══════════════════════════════════════ -->
+<!--  SECTION 2: FORECAST                  -->
+<!-- ══════════════════════════════════════ -->
+<div class="section" id="sec-forecast">
+  <div class="panel">
+    <div class="pred-header">
+      <div class="pt" style="margin:0">◈ 24-HOUR AQI FORECAST — HYPER-HEURISTIC ENSEMBLE v2</div>
+      <div class="model-badge">7 ALGORITHMS + SOFTMAX BLEND</div>
+    </div>
+    <div class="stats-bar" id="statsBar">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">RUN FORECAST FIRST →</span>
+    </div>
+    <canvas id="predChart" height="180" style="margin-bottom:12px"></canvas>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)"><div style="width:16px;height:2px;background:var(--accent2);border-radius:1px"></div>ENSEMBLE</div>
+      <div style="display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)"><div style="width:16px;height:8px;background:rgba(0,255,157,.15);border-radius:2px;border:1px dashed rgba(0,255,157,.3)"></div>±1σ CONFIDENCE</div>
+      <div style="display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)"><div style="width:8px;height:8px;background:var(--danger);border-radius:50%"></div>ANOMALY</div>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-bottom:7px">HOURLY DETAIL — SCROLL →</div>
+    <div class="pred-scroll"><div class="pred-row" id="predRow"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="pt">◈ ALGORITHM PERFORMANCE LEADERBOARD</div>
+    <div class="algo-grid" id="algoGrid"></div>
+    <div class="acc-row" id="accRow">
+      <div class="acc-card"><div class="acc-lbl">ENS MAE</div><div class="acc-val" id="acc-mae">--</div></div>
+      <div class="acc-card"><div class="acc-lbl">ENS RMSE</div><div class="acc-val" id="acc-rmse">--</div></div>
+      <div class="acc-card"><div class="acc-lbl">ENS MAPE</div><div class="acc-val" id="acc-mape">--</div></div>
+      <div class="acc-card"><div class="acc-lbl">ANOMALIES</div><div class="acc-val" id="acc-anom">--</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  SECTION 3: PRECAUTIONS               -->
+<!-- ══════════════════════════════════════ -->
+<div class="section" id="sec-precautions">
+
+  <div class="panel">
+    <div class="pt">◈ SELECT AQI LEVEL TO VIEW TARGETED PRECAUTIONS</div>
+    <div class="prec-aqi-scale" id="precScale">
+      <div class="prec-aqi-band selected" style="background:#00e676" onclick="selectAqiBand(0,this)">
+        <div class="pab-label">GOOD</div><div class="pab-range">0–50</div>
+      </div>
+      <div class="prec-aqi-band" style="background:#ffee58" onclick="selectAqiBand(1,this)">
+        <div class="pab-label">MODERATE</div><div class="pab-range">51–100</div>
+      </div>
+      <div class="prec-aqi-band" style="background:#ff9800" onclick="selectAqiBand(2,this)">
+        <div class="pab-label">USG</div><div class="pab-range">101–150</div>
+      </div>
+      <div class="prec-aqi-band" style="background:#f44336" onclick="selectAqiBand(3,this)">
+        <div class="pab-label">UNHEALTHY</div><div class="pab-range">151–200</div>
+      </div>
+      <div class="prec-aqi-band" style="background:#9c27b0" onclick="selectAqiBand(4,this)">
+        <div class="pab-label">V.UNHEALTHY</div><div class="pab-range">201–300</div>
+      </div>
+      <div class="prec-aqi-band" style="background:#7b1fa2" onclick="selectAqiBand(5,this)">
+        <div class="pab-label">HAZARDOUS</div><div class="pab-range">301+</div>
+      </div>
+    </div>
+    <div id="precDetail"></div>
+  </div>
+
+  <div class="panel">
+    <div class="pt">◈ FUTURE POLLUTION RISK PRECAUTIONS — LONG-TERM STRATEGY</div>
+    <div class="prec-cards">
+      <div class="prec-card">
+        <div class="prec-card-icon">🏗️</div>
+        <div class="prec-card-title">INFRASTRUCTURE</div>
+        <ul>
+          <li>Install HEPA air purifiers at home and office</li>
+          <li>Use air quality sensors in every room</li>
+          <li>Seal window gaps with weather stripping</li>
+          <li>Plant air-purifying trees (Neem, Peepal) around home</li>
+          <li>Install green walls or vertical gardens</li>
+          <li>Switch to electric vehicles or public transport</li>
+        </ul>
+      </div>
+      <div class="prec-card">
+        <div class="prec-card-icon">🏥</div>
+        <div class="prec-card-title">HEALTH PREPAREDNESS</div>
+        <ul>
+          <li>Get annual lung function tests (spirometry)</li>
+          <li>Maintain stock of N95/FFP2 masks</li>
+          <li>Carry bronchodilator inhaler if asthmatic</li>
+          <li>Take annual flu & pneumonia vaccines</li>
+          <li>Monitor blood pressure regularly</li>
+          <li>Build cardiovascular fitness to improve resilience</li>
+        </ul>
+      </div>
+      <div class="prec-card">
+        <div class="prec-card-icon">🌿</div>
+        <div class="prec-card-title">LIFESTYLE CHANGES</div>
+        <ul>
+          <li>Shift outdoor exercise to early morning (5–7AM)</li>
+          <li>Avoid burning trash, crop stubble, firecrackers</li>
+          <li>Use LPG/induction instead of wood-fire cooking</li>
+          <li>Choose low-VOC paints and cleaning products</li>
+          <li>Eat antioxidant-rich foods (berries, turmeric, greens)</li>
+          <li>Stay hydrated — 2.5–3L water daily</li>
+        </ul>
+      </div>
+      <div class="prec-card">
+        <div class="prec-card-icon">🌍</div>
+        <div class="prec-card-title">COMMUNITY ACTION</div>
+        <ul>
+          <li>Report illegal burning or industrial discharge</li>
+          <li>Plant 10 trees per household per year</li>
+          <li>Advocate for clean energy in local governance</li>
+          <li>Join neighbourhood air quality monitoring groups</li>
+          <li>Educate children on pollution and its effects</li>
+          <li>Support sustainable agriculture practices</li>
+        </ul>
+      </div>
+      <div class="prec-card">
+        <div class="prec-card-icon">🧪</div>
+        <div class="prec-card-title">DIETARY SHIELDS</div>
+        <ul>
+          <li>Vitamin C (500mg/day) — antioxidant protection</li>
+          <li>Omega-3 fatty acids reduce lung inflammation</li>
+          <li>Turmeric + black pepper — anti-inflammatory</li>
+          <li>Ginger tea helps clear respiratory mucus</li>
+          <li>Avoid processed foods during high AQI days</li>
+          <li>Consume probiotic foods for immune support</li>
+        </ul>
+      </div>
+      <div class="prec-card">
+        <div class="prec-card-icon">📱</div>
+        <div class="prec-card-title">TECHNOLOGY USE</div>
+        <ul>
+          <li>Set AQI alerts on AirSense & SAFAR apps</li>
+          <li>Check forecast before planning outdoor events</li>
+          <li>Use smart purifiers with auto-mode sensors</li>
+          <li>Install car cabin air filters (HEPA grade)</li>
+          <li>Track personal exposure with wearable sensors</li>
+          <li>Share AQI data with elderly/children in family</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  SECTION 4: REMEDIES                  -->
+<!-- ══════════════════════════════════════ -->
+<div class="section" id="sec-remedies">
+
+  <div class="panel">
+    <div class="pt">◈ HEALTH REMEDIES — SELECT CATEGORY</div>
+    <div class="remedy-tabs">
+      <button class="remedy-tab active" onclick="switchRemedy('natural',this)">🌿 Natural Remedies</button>
+      <button class="remedy-tab" onclick="switchRemedy('medical',this)">💊 Medical Interventions</button>
+      <button class="remedy-tab" onclick="switchRemedy('indoor',this)">🏠 Indoor Air Quality</button>
+      <button class="remedy-tab" onclick="switchRemedy('diet',this)">🥗 Dietary Defense</button>
+      <button class="remedy-tab" onclick="switchRemedy('exercise',this)">🧘 Exercise & Breathing</button>
+    </div>
+
+    <div class="remedy-content active" id="rem-natural">
+      <div class="remedy-grid">
+        <div class="remedy-card"><div class="r-icon">🫚</div><div class="r-title">STEAM INHALATION</div><div class="r-body">Add 3–4 drops of eucalyptus oil to boiling water. Inhale steam for 10 minutes twice daily. Opens blocked nasal passages, clears mucus from pollutant-irritated airways, soothes bronchial inflammation.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">DAILY USE</div></div>
+        <div class="remedy-card"><div class="r-icon">🍯</div><div class="r-title">HONEY + GINGER</div><div class="r-body">Mix 1 tsp raw honey with ½ tsp ginger juice every morning. Honey coats the throat, reducing inflammation. Ginger acts as a natural bronchodilator and expectorant, helping expel trapped particulate matter.</div><div class="r-tag" style="background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.3);color:var(--accent2)">PREVENTIVE</div></div>
+        <div class="remedy-card"><div class="r-icon">🌿</div><div class="r-title">TULSI (HOLY BASIL)</div><div class="r-body">Chew 5–6 fresh tulsi leaves or drink tulsi tea daily. Contains eugenol and rosmarinic acid — powerful anti-inflammatory phytochemicals that protect lung tissue from oxidative damage caused by PM2.5 and NO₂.</div><div class="r-tag" style="background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.3);color:var(--accent2)">PREVENTIVE</div></div>
+        <div class="remedy-card"><div class="r-icon">🧄</div><div class="r-title">GARLIC THERAPY</div><div class="r-body">Consume 2 raw garlic cloves daily with warm water. Allicin in garlic has proven antimicrobial and anti-inflammatory effects. Supports cardiovascular health compromised by long-term pollutant exposure.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">DAILY USE</div></div>
+        <div class="remedy-card"><div class="r-icon">🍋</div><div class="r-title">JAGGERY + LEMON</div><div class="r-body">Consume jaggery after exposure to dust/smoke. Jaggery acts as a lung cleanser — its iron content helps counter anemia caused by CO inhalation. Add lemon for Vitamin C-boosted antioxidant synergy.</div><div class="r-tag" style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--warn)">POST-EXPOSURE</div></div>
+        <div class="remedy-card"><div class="r-icon">💧</div><div class="r-title">SALINE NASAL RINSE</div><div class="r-body">Use a neti pot with distilled saline water (¼ tsp salt in 240ml water) once daily. Physically flushes PM2.5 particles, pollen, and chemical vapors from nasal passages before they reach the lungs.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">DAILY USE</div></div>
+      </div>
+    </div>
+
+    <div class="remedy-content" id="rem-medical">
+      <div class="remedy-grid">
+        <div class="remedy-card"><div class="r-icon">💊</div><div class="r-title">BRONCHODILATORS</div><div class="r-body">Short-acting beta-agonists (Salbutamol) provide rapid relief during AQI spikes. Long-acting bronchodilators (Salmeterol) used for chronic conditions. Always carry rescue inhaler on high AQI days (>150).</div><div class="r-tag" style="background:rgba(255,48,96,.1);border:1px solid rgba(255,48,96,.3);color:var(--danger)">PRESCRIPTION</div></div>
+        <div class="remedy-card"><div class="r-icon">🩺</div><div class="r-title">N-ACETYL CYSTEINE</div><div class="r-body">NAC (600mg/day) is a mucolytic and antioxidant. Boosts glutathione — the body's master antioxidant — which is depleted by air pollution exposure. Particularly effective against SO₂ and ozone damage.</div><div class="r-tag" style="background:rgba(255,48,96,.1);border:1px solid rgba(255,48,96,.3);color:var(--danger)">CONSULT DR</div></div>
+        <div class="remedy-card"><div class="r-icon">💉</div><div class="r-title">ANTI-INFLAMMATORY DRUGS</div><div class="r-body">Corticosteroid inhalers (Beclomethasone) reduce chronic airway inflammation. Oral antihistamines help when high particulate count triggers allergic rhinitis. Never self-prescribe — see a pulmonologist.</div><div class="r-tag" style="background:rgba(255,48,96,.1);border:1px solid rgba(255,48,96,.3);color:var(--danger)">PRESCRIPTION</div></div>
+        <div class="remedy-card"><div class="r-icon">🫀</div><div class="r-title">CARDIAC MONITORING</div><div class="r-body">PM2.5 increases risk of arrhythmia and myocardial infarction. Take Aspirin 75mg/day if cardiologically at risk and AQI consistently >150. Regular ECG monitoring recommended for elderly patients.</div><div class="r-tag" style="background:rgba(255,48,96,.1);border:1px solid rgba(255,48,96,.3);color:var(--danger)">CONSULT DR</div></div>
+        <div class="remedy-card"><div class="r-icon">🧬</div><div class="r-title">ANTIOXIDANT VITAMINS</div><div class="r-body">Vitamin E (400 IU/day) + Vitamin C (500mg/day) + Zinc (15mg/day) create a triple-antioxidant shield. Studies show this combination reduces pollution-induced DNA damage by up to 35%.</div><div class="r-tag" style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--warn)">OTC SAFE</div></div>
+        <div class="remedy-card"><div class="r-icon">🩻</div><div class="r-title">ANNUAL SCREENINGS</div><div class="r-body">Spirometry (lung function), chest X-ray, CBC (blood count), and heavy metal panel. Urban residents exposed to AQI >100 for 6+ months/year should get annual screenings starting at age 30.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">ANNUAL</div></div>
+      </div>
+    </div>
+
+    <div class="remedy-content" id="rem-indoor">
+      <div class="remedy-grid">
+        <div class="remedy-card"><div class="r-icon">🌬️</div><div class="r-title">HEPA AIR PURIFIERS</div><div class="r-body">True HEPA filters capture 99.97% of particles ≥0.3µm including PM2.5. Place units in bedroom (8 hrs of clean air during sleep) and main living area. Change filters every 6–12 months based on AQI exposure.</div><div class="r-tag" style="background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.3);color:var(--accent2)">ESSENTIAL</div></div>
+        <div class="remedy-card"><div class="r-icon">🪴</div><div class="r-title">INDOOR PLANTS</div><div class="r-body">Spider plant removes formaldehyde. Peace lily absorbs benzene and VOCs. Aloe vera monitors air toxins. Snake plant (Sansevieria) produces O₂ at night. Areca palm humidifies and filters simultaneously.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">NATURAL</div></div>
+        <div class="remedy-card"><div class="r-icon">🪟</div><div class="r-title">VENTILATION STRATEGY</div><div class="r-body">Open windows only when outdoor AQI < 50. Use mechanical ventilation with MERV-13+ filters otherwise. Maintain slight positive pressure indoors using filtered air supply to prevent outdoor air infiltration.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">STRATEGY</div></div>
+        <div class="remedy-card"><div class="r-icon">🧹</div><div class="r-title">CLEANING PRACTICES</div><div class="r-body">Use HEPA vacuum cleaners — regular vacuums redistribute PM2.5 into air. Mop floors with damp cloth after dry sweeping. Avoid chemical sprays; use microfiber cloths. Change bed linens 2× weekly during poor AQI weeks.</div><div class="r-tag" style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--warn)">WEEKLY</div></div>
+        <div class="remedy-card"><div class="r-icon">💧</div><div class="r-title">HUMIDITY CONTROL</div><div class="r-body">Maintain indoor humidity at 40–60%. Below 30% causes nasal dryness, making mucus barriers less effective. Above 70% promotes mold growth (another indoor pollutant). Use cool-mist humidifiers in dry seasons.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">MAINTAIN</div></div>
+        <div class="remedy-card"><div class="r-icon">🔥</div><div class="r-title">COOKING HYGIENE</div><div class="r-body">Run exhaust fan during all cooking — gas stoves emit NO₂ and CO. Avoid deep frying on high AQI days. Use induction cooktops to eliminate combustion. Keep kitchen door closed from living areas when cooking.</div><div class="r-tag" style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--warn)">DAILY</div></div>
+      </div>
+    </div>
+
+    <div class="remedy-content" id="rem-diet">
+      <div class="remedy-grid">
+        <div class="remedy-card"><div class="r-icon">🫐</div><div class="r-title">ANTIOXIDANT POWERFOODS</div><div class="r-body">Blueberries, amla (Indian gooseberry), pomegranate — these have ORAC scores >6,000 µmol TE/100g. Anthocyanins in these fruits cross the blood-lung barrier and directly neutralize free radicals generated by PM2.5.</div><div class="r-tag" style="background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.3);color:var(--accent2)">DAILY</div></div>
+        <div class="remedy-card"><div class="r-icon">🐟</div><div class="r-title">OMEGA-3 FATTY ACIDS</div><div class="r-body">Fatty fish (sardines, mackerel, salmon) or flaxseed oil (for vegetarians) — 2g EPA+DHA daily. Clinical studies show omega-3s reduce PM2.5-induced cardiac inflammation by 30–50%. Take with meals for absorption.</div><div class="r-tag" style="background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.3);color:var(--accent2)">DAILY</div></div>
+        <div class="remedy-card"><div class="r-icon">🌾</div><div class="r-title">MAGNESIUM-RICH FOODS</div><div class="r-body">Spinach, pumpkin seeds, dark chocolate, black beans. Magnesium acts as a natural bronchodilator and anti-spasmodic for airway muscles. Pollution depletes magnesium through oxidative stress — replenishment is critical.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">WEEKLY</div></div>
+        <div class="remedy-card"><div class="r-icon">🥦</div><div class="r-title">SULFORAPHANE SOURCE</div><div class="r-body">Broccoli sprouts (highest source), cauliflower, kale. Sulforaphane activates NRF2 pathway — the body's main detoxification switch. Studies from Johns Hopkins show it increases excretion of benzene and acrolein (key pollutants).</div><div class="r-tag" style="background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.3);color:var(--accent2)">3× WEEKLY</div></div>
+        <div class="remedy-card"><div class="r-icon">🫖</div><div class="r-title">GREEN TEA PROTOCOL</div><div class="r-body">3 cups of green tea daily provides EGCG — a potent catechin that chelates heavy metals (lead, cadmium) from blood. Also reduces oxidative stress biomarkers after pollution exposure. Avoid adding milk (blocks catechins).</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">DAILY</div></div>
+        <div class="remedy-card"><div class="r-icon">🥣</div><div class="r-title">GUT-LUNG AXIS DIET</div><div class="r-body">Probiotics (yogurt, kefir, kimchi) strengthen the gut-lung axis. A healthy gut microbiome reduces systemic inflammation triggered by inhaled pollutants. Take probiotic supplement (10 billion CFU) on high AQI days.</div><div class="r-tag" style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--warn)">HIGH AQI</div></div>
+      </div>
+    </div>
+
+    <div class="remedy-content" id="rem-exercise">
+      <div class="remedy-grid">
+        <div class="remedy-card"><div class="r-icon">🧘</div><div class="r-title">PRANAYAMA BREATHING</div><div class="r-body">Anulom Vilom (alternate nostril breathing) for 15 min/day increases lung capacity by 15–20% over 3 months. Bhramari (humming bee) calms vagal tone. Kapalbhati flushes stale air. Always practice indoors on AQI >100 days.</div><div class="r-tag" style="background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.3);color:var(--accent2)">DAILY</div></div>
+        <div class="remedy-card"><div class="r-icon">🏊</div><div class="r-title">SWIMMING</div><div class="r-body">Indoor swimming in chlorinated pools is one of the safest high-intensity exercises during poor AQI. Water filters inhaled air, and the warm humid environment soothes airways. 30 min swim = 150 cal + lung conditioning.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">HIGH AQI SAFE</div></div>
+        <div class="remedy-card"><div class="r-icon">🏋️</div><div class="r-title">INDOOR STRENGTH TRAINING</div><div class="r-body">Weight training and resistance bands can be done entirely indoors. Builds respiratory muscle strength (diaphragm and intercostals). Avoids the increased ventilation rate of cardio — meaning less pollutant inhalation per session.</div><div class="r-tag" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent)">HIGH AQI SAFE</div></div>
+        <div class="remedy-card"><div class="r-icon">🌅</div><div class="r-title">OPTIMAL OUTDOOR TIMING</div><div class="r-body">AQI is lowest between 5–7 AM when traffic is minimal and boundary layer is dispersed. Avoid 8–10 AM (rush hour), 12–3 PM (peak ozone formation from UV), and 6–9 PM (secondary particulate formation). Check forecast before going out.</div><div class="r-tag" style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--warn)">TIMING</div></div>
+        <div class="remedy-card"><div class="r-icon">😷</div><div class="r-title">MASK PROTOCOL FOR EXERCISE</div><div class="r-body">N95 masks reduce PM2.5 inhalation by 95% but increase breathing resistance by 30%. Use elastomeric respirators for prolonged outdoor exercise. Never use cloth masks for exercise — insufficient filtration and cause CO₂ rebreathing.</div><div class="r-tag" style="background:rgba(255,48,96,.1);border:1px solid rgba(255,48,96,.3);color:var(--danger)">IMPORTANT</div></div>
+        <div class="remedy-card"><div class="r-icon">🫧</div><div class="r-title">POST-EXERCISE DETOX</div><div class="r-body">After outdoor exercise on AQI>100 days: shower immediately, rinse nasal passages, gargle with turmeric salt water, drink 500ml of water with lemon. Change all clothes. This reduces secondary indoor contamination from particles on skin and hair.</div><div class="r-tag" style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:var(--warn)">POST-OUTDOOR</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  SECTION 5: DAILY GUIDE               -->
+<!-- ══════════════════════════════════════ -->
+<div class="section" id="sec-dailylife">
+
+  <div class="grid2">
+    <div>
+      <div class="panel">
+        <div class="pt">◈ YOUR 24-HOUR AIR QUALITY SURVIVAL GUIDE</div>
+        <div class="daily-timeline">
+
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#00e676;box-shadow:0 0 8px #00e676"></div>
+            <div class="timeline-time">05:00 — 07:00 · EARLY MORNING</div>
+            <div class="timeline-card">
+              <div class="timeline-title">🌄 Best window for outdoor activity</div>
+              <div class="timeline-body">AQI is at its daily minimum. Traffic is low, boundary layer mixing is at maximum height, and overnight deposition has cleared particulates. Ideal for running, cycling, yoga outdoors.</div>
+              <div class="timeline-tips">
+                <span class="tip-chip">Outdoor exercise ✓</span>
+                <span class="tip-chip">Open windows</span>
+                <span class="tip-chip">Check AirSense forecast</span>
+                <span class="tip-chip">Pranayama practice</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#ffb800;box-shadow:0 0 8px #ffb800"></div>
+            <div class="timeline-time">07:00 — 10:00 · MORNING RUSH</div>
+            <div class="timeline-card">
+              <div class="timeline-title">🚦 Traffic spike — wear N95 if commuting</div>
+              <div class="timeline-body">Vehicle emissions peak during rush hour. NO₂ and CO spike near roads. If commuting, wear N95 mask, keep car windows closed and set AC to recirculate mode. Eat antioxidant breakfast (berries, green tea).</div>
+              <div class="timeline-tips">
+                <span class="tip-chip">N95 outdoors</span>
+                <span class="tip-chip">Close car windows</span>
+                <span class="tip-chip">Avoid roadside</span>
+                <span class="tip-chip">Green tea</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#ff9800;box-shadow:0 0 8px #ff9800"></div>
+            <div class="timeline-time">10:00 — 14:00 · MIDDAY</div>
+            <div class="timeline-card">
+              <div class="timeline-title">☀️ Ozone formation — sensitive groups stay indoor</div>
+              <div class="timeline-body">UV radiation triggers photochemical reactions producing ground-level ozone (O₃). Ozone is a potent lung irritant. Sensitive groups (elderly, children, asthma patients) should remain indoors. Others limit strenuous outdoor activity.</div>
+              <div class="timeline-tips">
+                <span class="tip-chip">Indoor work hours</span>
+                <span class="tip-chip">Run air purifier</span>
+                <span class="tip-chip">Hydrate well</span>
+                <span class="tip-chip">Avoid deep breathing outside</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#ffee58;box-shadow:0 0 8px #ffee58"></div>
+            <div class="timeline-time">14:00 — 17:00 · AFTERNOON</div>
+            <div class="timeline-card">
+              <div class="timeline-title">🌬️ Wind helps — moderate outdoor activity OK</div>
+              <div class="timeline-body">Afternoon convective mixing disperses pollutants to higher altitudes. Wind speeds typically peak, aiding dispersion. Light outdoor activities acceptable for healthy adults. Good time for indoor gym or swimming.</div>
+              <div class="timeline-tips">
+                <span class="tip-chip">Light outdoor OK</span>
+                <span class="tip-chip">Monitor AQI app</span>
+                <span class="tip-chip">School pickup timing</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#ff6b35;box-shadow:0 0 8px #ff6b35"></div>
+            <div class="timeline-time">17:00 — 20:00 · EVENING RUSH</div>
+            <div class="timeline-card">
+              <div class="timeline-title">🏙️ Second pollution peak — minimize outdoor exposure</div>
+              <div class="timeline-body">Evening rush + temperature inversion = worst urban AQI period. Boundary layer collapses, trapping pollutants near ground. Cooking smoke from households also peaks. Keep windows closed. Run air purifier on high.</div>
+              <div class="timeline-tips">
+                <span class="tip-chip">Windows closed</span>
+                <span class="tip-chip">Purifier on HIGH</span>
+                <span class="tip-chip">Cook with exhaust fan</span>
+                <span class="tip-chip">No outdoor jogging</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#00d4ff;box-shadow:0 0 8px #00d4ff"></div>
+            <div class="timeline-time">20:00 — 05:00 · NIGHT</div>
+            <div class="timeline-card">
+              <div class="timeline-title">🌙 Sleep with air purifier — protect overnight</div>
+              <div class="timeline-body">We spend 1/3 of our lives sleeping. PM2.5 penetrates deep into lungs during the 6–8 hours of rest. Run bedroom HEPA purifier all night. Keep windows closed. Change bed linens twice weekly during poor AQI periods.</div>
+              <div class="timeline-tips">
+                <span class="tip-chip">HEPA purifier ON</span>
+                <span class="tip-chip">Windows closed</span>
+                <span class="tip-chip">Nasal rinse before bed</span>
+                <span class="tip-chip">Steam inhale if dry</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="pt">◈ DAILY CHECKLIST — AQI RESPONSE PROTOCOL</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px">
+          Current AQI: <strong id="dailyAqiRef" style="color:var(--accent)">-- (run dashboard first)</strong>
+        </div>
+        <div class="daily-checklist" id="dailyChecklist">
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>MORNING CHECK</strong>Check AirSense AQI forecast before leaving home</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>MASK READY</strong>N95 mask in bag if AQI forecast >100 today</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>HYDRATION</strong>Drink 500ml water before 9AM — flushes inhaled toxins</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>ANTIOXIDANT</strong>Take Vitamin C 500mg + green tea in morning</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>PURIFIER ON</strong>Turn on air purifier before leaving for work</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>WINDOW PLAN</strong>Decide open/close windows based on AQI forecast</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>EXERCISE PLAN</strong>Plan workout timing around AQI low-point (5–7AM)</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>PLANT CARE</strong>Mist indoor plants (boosts air moisture + filtration)</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>EVENING RITUAL</strong>Shower & change clothes after outdoor exposure</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>NASAL RINSE</strong>Saline nasal wash before bed on AQI>100 days</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>SLEEP PREP</strong>HEPA purifier on, windows closed for overnight</span></label>
+          <label class="check-item"><input type="checkbox"><span class="check-label"><strong>FAMILY CHECK</strong>Share AQI update with elderly/children in household</span></label>
+        </div>
+        <button class="btn btn-sm btn-green" style="margin-top:12px" onclick="resetChecklist()">↺ RESET CHECKLIST</button>
+      </div>
+
+      <div class="panel">
+        <div class="pt">◈ AQI-BASED ACTIVITY GUIDE</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.2);border-radius:6px;padding:10px">
+            <div style="width:8px;height:40px;background:#00e676;border-radius:4px;flex-shrink:0"></div>
+            <div><div style="font-family:'Orbitron',monospace;font-size:.65rem;color:#00e676">AQI 0–50 · GOOD</div>
+            <div style="font-size:.77rem;color:var(--text);margin-top:3px">All outdoor activities safe. Enjoy parks, running, cycling. Keep windows open. No precautions needed.</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,238,88,.07);border:1px solid rgba(255,238,88,.2);border-radius:6px;padding:10px">
+            <div style="width:8px;height:40px;background:#ffee58;border-radius:4px;flex-shrink:0"></div>
+            <div><div style="font-family:'Orbitron',monospace;font-size:.65rem;color:#ffee58">AQI 51–100 · MODERATE</div>
+            <div style="font-size:.77rem;color:var(--text);margin-top:3px">Sensitive groups limit prolonged outdoor exertion. Healthy adults: normal activities OK. Check forecast.</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,152,0,.07);border:1px solid rgba(255,152,0,.2);border-radius:6px;padding:10px">
+            <div style="width:8px;height:40px;background:#ff9800;border-radius:4px;flex-shrink:0"></div>
+            <div><div style="font-family:'Orbitron',monospace;font-size:.65rem;color:#ff9800">AQI 101–150 · UNHEALTHY FOR SENSITIVE GROUPS</div>
+            <div style="font-size:.77rem;color:var(--text);margin-top:3px">Children, elderly, heart/lung patients: stay indoors. Others: wear N95 outdoors. Limit exercise to indoors.</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(244,67,54,.07);border:1px solid rgba(244,67,54,.2);border-radius:6px;padding:10px">
+            <div style="width:8px;height:40px;background:#f44336;border-radius:4px;flex-shrink:0"></div>
+            <div><div style="font-family:'Orbitron',monospace;font-size:.65rem;color:#f44336">AQI 151–200 · UNHEALTHY</div>
+            <div style="font-size:.77rem;color:var(--text);margin-top:3px">Everyone should reduce outdoor activity. N95 mandatory. Run air purifier. Cancel outdoor events.</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(156,39,176,.07);border:1px solid rgba(156,39,176,.2);border-radius:6px;padding:10px">
+            <div style="width:8px;height:40px;background:#9c27b0;border-radius:4px;flex-shrink:0"></div>
+            <div><div style="font-family:'Orbitron',monospace;font-size:.65rem;color:#9c27b0">AQI 201–300 · VERY UNHEALTHY</div>
+            <div style="font-size:.77rem;color:var(--text);margin-top:3px">Stay indoors. Seal doors and windows. Use purifier continuously. Emergency protocols for asthma patients.</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(123,31,162,.1);border:1px solid rgba(123,31,162,.3);border-radius:6px;padding:10px">
+            <div style="width:8px;height:40px;background:#7b1fa2;border-radius:4px;flex-shrink:0"></div>
+            <div><div style="font-family:'Orbitron',monospace;font-size:.65rem;color:#bf80ff">AQI 301+ · HAZARDOUS</div>
+            <div style="font-size:.77rem;color:var(--text);margin-top:3px">Health emergency. Schools/offices should close. Everyone stays indoors. Call doctor if symptoms appear.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  SECTION 6: WORKFLOW                  -->
+<!-- ══════════════════════════════════════ -->
+<div class="section" id="sec-workflow">
+  <div class="panel">
+    <div class="pt">◈ AIRSENSE v3 — COMPLETE SYSTEM WORKFLOW</div>
+
+    <div class="workflow-wrap">
+
+      <div class="wf-section-title">① DATA ACQUISITION LAYER</div>
+      <div class="wf-row">
+        <div class="wf-node accent"><div class="wf-label">INPUT</div><div class="wf-title">City Name</div><div class="wf-body">User enters city via search bar</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node"><div class="wf-label">GEOCODING</div><div class="wf-title">OWM Geo API</div><div class="wf-body">City → (lat, lon)</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node green"><div class="wf-label">API CALLS</div><div class="wf-title">Air Pollution API</div><div class="wf-body">Current AQI + 8 pollutants</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node green"><div class="wf-label">API CALLS</div><div class="wf-title">History API</div><div class="wf-body">48h + 7-day historical AQI</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node green"><div class="wf-label">API CALLS</div><div class="wf-title">Weather API</div><div class="wf-body">Temp, Wind, Humidity, Pressure</div></div>
+      </div>
+
+      <div class="wf-section-title">② PREPROCESSING LAYER</div>
+      <div class="wf-row">
+        <div class="wf-node"><div class="wf-label">STEP 2.1</div><div class="wf-title">AQI Conversion</div><div class="wf-body">OWM index (1–5) → US AQI scale (25–250)</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node"><div class="wf-label">STEP 2.2</div><div class="wf-title">Data Padding</div><div class="wf-body">Ensure min 14 points for algorithm init</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node"><div class="wf-label">STEP 2.3</div><div class="wf-title">Train/Val Split</div><div class="wf-body">75% train | 25% hold-out validation</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node accent"><div class="wf-label">STEP 2.4</div><div class="wf-title">Normalization</div><div class="wf-body">x → [0,1] for polynomial regression</div></div>
+      </div>
+
+      <div class="wf-section-title">③ HYPER-HEURISTIC ENGINE</div>
+      <div class="wf-row">
+        <div class="wf-node warn"><div class="wf-label">ALGO 1</div><div class="wf-title">WMA</div><div class="wf-body">Power-weighted moving average</div></div>
+        <div class="wf-arrow">↘</div>
+        <div class="wf-node warn"><div class="wf-label">ALGO 2</div><div class="wf-title">Holt-ES</div><div class="wf-body">Double exponential smoothing</div></div>
+        <div class="wf-arrow">↘</div>
+        <div class="wf-node warn"><div class="wf-label">ALGO 3</div><div class="wf-title">Seasonal</div><div class="wf-body">24h diurnal decomposition</div></div>
+        <div class="wf-arrow">↘</div>
+        <div class="wf-node warn"><div class="wf-label">ALGO 4</div><div class="wf-title">Lin Reg</div><div class="wf-body">Dampened trend regression</div></div>
+        <div class="wf-arrow">↘</div>
+        <div class="wf-node warn"><div class="wf-label">ALGO 5</div><div class="wf-title">ARIMA(1,1)</div><div class="wf-body">Differenced AR model</div></div>
+        <div class="wf-arrow">↘</div>
+        <div class="wf-node warn"><div class="wf-label">ALGO 6</div><div class="wf-title">LSTM-like</div><div class="wf-body">Forget-gate memory</div></div>
+        <div class="wf-arrow">↘</div>
+        <div class="wf-node warn"><div class="wf-label">ALGO 7</div><div class="wf-title">Poly Reg</div><div class="wf-body">Degree-2 curve fit</div></div>
+      </div>
+      <div style="margin:8px 0;display:flex;justify-content:center">↓ All 7 validate on hold-out → MAE / RMSE / MAPE computed ↓</div>
+      <div class="wf-row">
+        <div class="wf-node"><div class="wf-label">STEP 3.2</div><div class="wf-title">Fitness Scoring</div><div class="wf-body">Fitness(k) = 100 / (1 + MAE)</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node accent"><div class="wf-label">STEP 3.3</div><div class="wf-title">Softmax Weights</div><div class="wf-body">W(k) = exp(fit) / Σexp(fit) → sums to 1.0</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node green"><div class="wf-label">STEP 3.4</div><div class="wf-title">Weighted Ensemble</div><div class="wf-body">Σ W(k) × Pred(k) × Weather Factor</div></div>
+      </div>
+
+      <div class="wf-section-title">④ POST-PROCESSING LAYER</div>
+      <div class="wf-row">
+        <div class="wf-node green"><div class="wf-label">STEP 4.1</div><div class="wf-title">Weather Bias</div><div class="wf-body">Humidity/Wind/Pressure correction ×[0.7–1.3]</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node accent"><div class="wf-label">STEP 4.2</div><div class="wf-title">Confidence Bands</div><div class="wf-body">±σ widening: 1 + i×0.065 per hour</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node danger"><div class="wf-label">STEP 4.3</div><div class="wf-title">Anomaly Detection</div><div class="wf-body">Z-score > 2.2 → ⚠ Flag</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node"><div class="wf-label">OUTPUT</div><div class="wf-title">24h Forecast</div><div class="wf-body">AQI + CI + anomaly per hour</div></div>
+      </div>
+
+      <div class="wf-section-title">⑤ INTELLIGENCE LAYER — NEW IN v3</div>
+      <div class="wf-row">
+        <div class="wf-node orange"><div class="wf-label">MODULE A</div><div class="wf-title">Health Risk Engine</div><div class="wf-body">AQI → Risk level → Organ impact scores</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node orange"><div class="wf-label">MODULE B</div><div class="wf-title">Precautions Engine</div><div class="wf-body">AQI band → Targeted action cards</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node orange"><div class="wf-label">MODULE C</div><div class="wf-title">Remedy Database</div><div class="wf-body">Natural/Medical/Dietary/Exercise guides</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node orange"><div class="wf-label">MODULE D</div><div class="wf-title">Daily Life Planner</div><div class="wf-body">Hourly activity guide + checklist</div></div>
+      </div>
+
+      <div class="wf-section-title">⑥ VISUALIZATION LAYER</div>
+      <div class="wf-row">
+        <div class="wf-node accent"><div class="wf-label">VIZ 1</div><div class="wf-title">AQI Gauge</div><div class="wf-body">Semicircular canvas gauge with needle</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node accent"><div class="wf-label">VIZ 2</div><div class="wf-title">Pollutant Bars</div><div class="wf-body">8 pollutants with animated bars</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node accent"><div class="wf-label">VIZ 3</div><div class="wf-title">Timeline Chart</div><div class="wf-body">Chart.js line with gradient fill</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node accent"><div class="wf-label">VIZ 4</div><div class="wf-title">Forecast Chart</div><div class="wf-body">Ensemble + CI bands + anomaly markers</div></div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-node green"><div class="wf-label">VIZ 5</div><div class="wf-title">Hourly Cards</div><div class="wf-body">24 scrollable prediction cards</div></div>
+      </div>
+
+      <div class="wf-legend">
+        <div class="wf-leg-item"><div class="wf-leg-dot" style="background:rgba(0,212,255,.3);border:1px solid rgba(0,212,255,.5)"></div>Data/API</div>
+        <div class="wf-leg-item"><div class="wf-leg-dot" style="background:rgba(0,255,157,.3);border:1px solid rgba(0,255,157,.5)"></div>Processing</div>
+        <div class="wf-leg-item"><div class="wf-leg-dot" style="background:rgba(255,184,0,.3);border:1px solid rgba(255,184,0,.5)"></div>Algorithms</div>
+        <div class="wf-leg-item"><div class="wf-leg-dot" style="background:rgba(255,107,53,.3);border:1px solid rgba(255,107,53,.5)"></div>Intelligence</div>
+        <div class="wf-leg-item"><div class="wf-leg-dot" style="background:rgba(255,48,96,.3);border:1px solid rgba(255,48,96,.5)"></div>Detection</div>
+        <div class="wf-leg-item"><div class="wf-leg-dot" style="background:rgba(26,42,58,.8);border:1px solid var(--border2)"></div>General</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  SECTION 7: ABOUT                     -->
+<!-- ══════════════════════════════════════ -->
+<div class="section" id="sec-about">
+  <div class="about-hero">
+    <h1>AIRSENSE v3.0</h1>
+    <p>A complete software-only air quality intelligence platform — real-time monitoring, hyper-heuristic 24h forecasting, health guidance, and actionable daily life recommendations. Built entirely in HTML, CSS & JavaScript.</p>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card"><div class="f-icon">🛰️</div><div class="f-title">REAL-TIME DATA</div><div class="f-body">Live AQI, 8 pollutants, and atmospheric data via OpenWeatherMap API. 48h history for model training. Auto-refreshes every 5 minutes.</div></div>
+    <div class="feature-card"><div class="f-icon">🧠</div><div class="f-title">HYPER-HEURISTIC ENGINE</div><div class="f-body">7 algorithms run in parallel. Softmax-weighted ensemble selects the best blend automatically. 24-hour forecast with confidence intervals.</div></div>
+    <div class="feature-card"><div class="f-icon">🛡️</div><div class="f-title">PRECAUTIONS MODULE</div><div class="f-body">Targeted precautions for every AQI level. Future-proofing long-term strategies. Infrastructure, health, community, and dietary advice.</div></div>
+    <div class="feature-card"><div class="f-icon">💊</div><div class="f-title">REMEDIES DATABASE</div><div class="f-body">Evidence-based natural, medical, indoor, dietary and exercise remedies. Referenced from peer-reviewed research. Categorized by use case.</div></div>
+    <div class="feature-card"><div class="f-icon">🌅</div><div class="f-title">DAILY LIFE GUIDE</div><div class="f-body">Hour-by-hour activity planner. AQI-indexed daily checklist. Activity safety guide across all 6 AQI categories.</div></div>
+    <div class="feature-card"><div class="f-icon">⚙️</div><div class="f-title">SYSTEM WORKFLOW</div><div class="f-body">Complete visual workflow diagram of all 6 system layers — from data acquisition to intelligent health recommendations.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="pt">◈ TECHNOLOGY STACK</div>
+    <div class="tech-row">
+      <div class="tech-badge">HTML5</div>
+      <div class="tech-badge">CSS3 Variables</div>
+      <div class="tech-badge">Vanilla JavaScript</div>
+      <div class="tech-badge">Chart.js v4.4</div>
+      <div class="tech-badge">Canvas API</div>
+      <div class="tech-badge">OpenWeatherMap API</div>
+      <div class="tech-badge">Fetch API</div>
+      <div class="tech-badge">Google Fonts (Orbitron)</div>
+      <div class="tech-badge">WMA Algorithm</div>
+      <div class="tech-badge">Holt Double ES</div>
+      <div class="tech-badge">Seasonal Decomposition</div>
+      <div class="tech-badge">Linear Regression</div>
+      <div class="tech-badge">ARIMA(1,1,0)</div>
+      <div class="tech-badge">LSTM-like Gate</div>
+      <div class="tech-badge">Polynomial Regression</div>
+      <div class="tech-badge">Softmax Weighting</div>
+      <div class="tech-badge">Z-score Anomaly</div>
+      <div class="tech-badge">GitHub Pages Hosted</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="pt">◈ DATA SOURCES & API</div>
+    <div style="font-size:.82rem;color:var(--muted);line-height:1.7">
+      <strong style="color:var(--text)">OpenWeatherMap Air Pollution API</strong> — Real-time + historical AQI, PM2.5, PM10, O₃, NO₂, SO₂, CO, NO, NH₃<br>
+      <strong style="color:var(--text)">OpenWeatherMap Weather API</strong> — Temperature, humidity, wind speed, atmospheric pressure, visibility<br>
+      <strong style="color:var(--text)">OWM Geocoding API</strong> — City name to coordinates conversion<br>
+      <strong style="color:var(--text)">Free API key</strong>: <a href="https://home.openweathermap.org/users/sign_up" target="_blank" style="color:var(--accent)">openweathermap.org</a> (1,000 calls/day free tier)<br>
+      <strong style="color:var(--text)">AQI Scale</strong>: US EPA Air Quality Index (0–500+)<br>
+      <strong style="color:var(--text)">Health Guidelines</strong>: WHO Air Quality Guidelines 2021, US EPA NAAQS, CPCB India standards
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ JAVASCRIPT ════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-// ══════════════════════════════════════════════
-//  CONFIG
-// ══════════════════════════════════════════════
-let OWM_KEY = localStorage.getItem('owm_api_key') || '';
-let demoMode = !OWM_KEY;
-let chartInstance = null;
-let currentTab = '24h';
-let currentData = null;
-let predData = [];
+// ════════════════════════════════════════
+//  CORE STATE
+// ════════════════════════════════════════
+let OWM_KEY=localStorage.getItem('owm_api_key')||'';
+let demoMode=!OWM_KEY;
+let histChart=null,fcastChart=null;
+let currentTab='24h',currentData=null,predData=[];
 
-// ── AQI color helper ──
-function aqiColor(v) {
-  if (v <= 50)  return '#00e676';
-  if (v <= 100) return '#ffee58';
-  if (v <= 150) return '#ff9800';
-  if (v <= 200) return '#f44336';
-  if (v <= 300) return '#9c27b0';
-  return '#7b1fa2';
-}
-function aqiCategory(v) {
-  if (v <= 50)  return ['GOOD', '#00e676'];
-  if (v <= 100) return ['MODERATE', '#ffee58'];
-  if (v <= 150) return ['UNHEALTHY FOR SENSITIVE GROUPS', '#ff9800'];
-  if (v <= 200) return ['UNHEALTHY', '#f44336'];
-  if (v <= 300) return ['VERY UNHEALTHY', '#9c27b0'];
-  return ['HAZARDOUS', '#7b1fa2'];
-}
-// OWM index (1-5) → AQI approx
-function owmToAqi(idx) {
-  return [25, 75, 125, 175, 250][idx - 1] || 50;
-}
+// CLOCK
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false});}
+setInterval(updateClock,1000);updateClock();
 
-// ── Clock ──
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent = now.toLocaleTimeString('en-US',{hour12:false});
-}
-setInterval(updateClock, 1000); updateClock();
-
-// ══════════════════════════════════════════════
-//  API KEY MODAL
-// ══════════════════════════════════════════════
-function openApiModal() { document.getElementById('apiModal').classList.remove('hidden'); }
-function confirmApiKey() {
-  const k = document.getElementById('apiKeyInput').value.trim();
-  if (k) {
-    OWM_KEY = k;
-    localStorage.setItem('owm_api_key', k);
-    demoMode = false;
-  }
-  document.getElementById('apiModal').classList.add('hidden');
-  fetchData();
-}
-function useDemoMode() {
-  demoMode = true;
-  document.getElementById('apiModal').classList.add('hidden');
-  fetchData();
-}
-
-// Show modal if no key
-if (!OWM_KEY) { /* shown by default */ } else {
-  document.getElementById('apiModal').classList.add('hidden');
-  fetchData();
-}
-
-// ══════════════════════════════════════════════
-//  GAUGE CANVAS
-// ══════════════════════════════════════════════
-function drawGauge(aqi) {
-  const canvas = document.getElementById('gaugeCanvas');
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const cx = W/2, cy = H - 20;
-  const r = 100;
-  ctx.clearRect(0,0,W,H);
-
-  // Background arc
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, Math.PI, 0, false);
-  ctx.lineWidth = 14;
-  ctx.strokeStyle = '#0f1f2e';
-  ctx.stroke();
-
-  // Color gradient arcs
-  const stops = [
-    [0.00, 0.17, '#00e676'],
-    [0.17, 0.34, '#ffee58'],
-    [0.34, 0.51, '#ff9800'],
-    [0.51, 0.68, '#f44336'],
-    [0.68, 0.85, '#9c27b0'],
-    [0.85, 1.00, '#7b1fa2'],
-  ];
-  stops.forEach(([s,e,col]) => {
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, Math.PI + s*Math.PI, Math.PI + e*Math.PI, false);
-    ctx.lineWidth = 14;
-    ctx.strokeStyle = col;
-    ctx.stroke();
-  });
-
-  // Needle
-  const maxAqi = 300;
-  const norm = Math.min(aqi/maxAqi, 1);
-  const angle = Math.PI + norm * Math.PI;
-  const nx = cx + (r-14) * Math.cos(angle);
-  const ny = cy + (r-14) * Math.sin(angle);
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(nx, ny);
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 2;
-  ctx.shadowColor = '#ffffff';
-  ctx.shadowBlur = 6;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  // Center dot
-  ctx.beginPath();
-  ctx.arc(cx, cy, 5, 0, Math.PI*2);
-  ctx.fillStyle = '#fff';
-  ctx.fill();
-}
-
-// ══════════════════════════════════════════════
-//  POLLUTANTS DISPLAY
-// ══════════════════════════════════════════════
-const POLLUTANT_LIMITS = {
-  co:  [0, 10000], no:  [0, 200], no2: [0, 200],
-  o3:  [0, 180],   so2: [0, 350], pm2_5: [0, 150],
-  pm10:[0, 200],   nh3: [0, 200]
-};
-const POLL_COLORS = {
-  co:'#00d4ff',no:'#ff6b35',no2:'#ffb800',o3:'#00ff9d',
-  so2:'#ff3060',pm2_5:'#9c6dff',pm10:'#ff9800',nh3:'#4db8ff'
-};
-
-function renderPollutants(comp) {
-  const container = document.getElementById('pollutantsContainer');
-  const keys = ['pm2_5','pm10','o3','no2','so2','co','no','nh3'];
-  const labels = ['PM2.5','PM10','O₃','NO₂','SO₂','CO','NO','NH₃'];
-  const units = ['µg/m³','µg/m³','µg/m³','µg/m³','µg/m³','µg/m³','µg/m³','µg/m³'];
-  container.innerHTML = keys.map((k,i) => {
-    const val = comp[k] !== undefined ? comp[k] : 0;
-    const [min,max] = POLLUTANT_LIMITS[k] || [0,100];
-    const pct = Math.min((val-min)/(max-min)*100, 100).toFixed(1);
-    const col = POLL_COLORS[k] || '#00d4ff';
-    return `<div class="pollutant-item">
-      <div class="poll-name">${labels[i]}</div>
-      <div class="poll-bar-wrap">
-        <div class="poll-bar" style="width:${pct}%;background:${col};box-shadow:0 0 6px ${col}88"></div>
-      </div>
-      <div class="poll-val">${val.toFixed(1)} <span style="color:var(--muted);font-size:0.6rem">${units[i]}</span></div>
-    </div>`;
-  }).join('');
-}
-
-// ══════════════════════════════════════════════
-//  CHART
-// ══════════════════════════════════════════════
-function buildChart(labels, values, label='AQI', forecast=false) {
-  if (chartInstance) chartInstance.destroy();
-  const ctx = document.getElementById('aqiChart').getContext('2d');
-  const cols = values.map(v => aqiColor(v));
-  const grad = ctx.createLinearGradient(0,0,0,180);
-  const primaryColor = forecast ? 'rgba(0,255,157,' : 'rgba(0,212,255,';
-  grad.addColorStop(0, primaryColor+'0.3)');
-  grad.addColorStop(1, primaryColor+'0)');
-
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label,
-        data: values,
-        borderColor: forecast ? '#00ff9d' : '#00d4ff',
-        borderWidth: 2,
-        pointBackgroundColor: cols,
-        pointRadius: 4,
-        pointHoverRadius: 7,
-        fill: true,
-        backgroundColor: grad,
-        tension: 0.4,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#080e1a',
-          borderColor: '#1a2a3a',
-          borderWidth: 1,
-          titleColor: '#00d4ff',
-          bodyColor: '#c8dde8',
-          titleFont: { family: 'Share Tech Mono' },
-          callbacks: {
-            label: ctx => `AQI: ${Math.round(ctx.raw)}`
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(26,42,58,0.5)' },
-          ticks: { color: '#4a6070', font: { family: 'Share Tech Mono', size: 10 } }
-        },
-        y: {
-          grid: { color: 'rgba(26,42,58,0.5)' },
-          ticks: { color: '#4a6070', font: { family: 'Share Tech Mono', size: 10 } },
-          beginAtZero: true,
-          max: 300,
-        }
-      }
-    }
-  });
-}
-
-function switchTab(btn, tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+// ════════════════════════════════════════
+//  NAV / SECTION
+// ════════════════════════════════════════
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
   btn.classList.add('active');
-  currentTab = tab;
-  if (!currentData) return;
-  renderTab(tab);
 }
 
-function renderTab(tab) {
-  if (tab === '24h') {
-    buildChart(currentData.h24.labels, currentData.h24.values, '24h AQI');
-  } else if (tab === '7d') {
-    buildChart(currentData.d7.labels, currentData.d7.values, '7d AQI');
-  } else {
-    const labels = predData.map(p => p.hour);
-    const vals   = predData.map(p => p.aqi);
-    buildChart(labels, vals, 'Forecast AQI', true);
-  }
+// ════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════
+function aqiColor(v){if(v<=50)return'#00e676';if(v<=100)return'#ffee58';if(v<=150)return'#ff9800';if(v<=200)return'#f44336';if(v<=300)return'#9c27b0';return'#7b1fa2';}
+function aqiCatLabel(v){if(v<=50)return['GOOD','#00e676'];if(v<=100)return['MODERATE','#ffee58'];if(v<=150)return['UNHEALTHY FOR SENSITIVE GROUPS','#ff9800'];if(v<=200)return['UNHEALTHY','#f44336'];if(v<=300)return['VERY UNHEALTHY','#9c27b0'];return['HAZARDOUS','#7b1fa2'];}
+function owmToAqi(i){return[25,75,125,175,250][i-1]||50;}
+
+// ════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════
+function openApiModal(){document.getElementById('apiModal').classList.remove('hidden');}
+function confirmApiKey(){const k=document.getElementById('apiKeyInput').value.trim();if(k){OWM_KEY=k;localStorage.setItem('owm_api_key',k);demoMode=false;}document.getElementById('apiModal').classList.add('hidden');fetchData();}
+function useDemoMode(){demoMode=true;document.getElementById('apiModal').classList.add('hidden');fetchData();}
+if(!OWM_KEY){}else{document.getElementById('apiModal').classList.add('hidden');fetchData();}
+
+// ════════════════════════════════════════
+//  GAUGE
+// ════════════════════════════════════════
+function drawGauge(aqi){
+  const c=document.getElementById('gaugeCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,cx=W/2,cy=H-10,r=88;
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,0,false);ctx.lineWidth=11;ctx.strokeStyle='#0f1f2e';ctx.stroke();
+  [[0,.17,'#00e676'],[.17,.34,'#ffee58'],[.34,.51,'#ff9800'],[.51,.68,'#f44336'],[.68,.85,'#9c27b0'],[.85,1,'#7b1fa2']].forEach(([s,e,col])=>{
+    ctx.beginPath();ctx.arc(cx,cy,r,Math.PI+s*Math.PI,Math.PI+e*Math.PI,false);ctx.lineWidth=11;ctx.strokeStyle=col;ctx.stroke();
+  });
+  const norm=Math.min(aqi/300,1),ang=Math.PI+norm*Math.PI;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+(r-11)*Math.cos(ang),cy+(r-11)*Math.sin(ang));
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.shadowColor='#fff';ctx.shadowBlur=7;ctx.stroke();ctx.shadowBlur=0;
+  ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
 }
 
-// ══════════════════════════════════════════════
-//  HYPER-HEURISTIC PREDICTION ENGINE
-// ══════════════════════════════════════════════
-// Ensemble of heuristics:
-// 1. Weighted Moving Average (WMA)
-// 2. Exponential Smoothing (ES)
-// 3. Seasonal Naive (time-of-day pattern)
-// 4. Linear Regression (trend)
-// Hyper-heuristic: selects/blends best performers via fitness scoring
-const algorithms = [
-  { name: 'WMA',       key: 'wma',    score: 0 },
-  { name: 'EXP SMOOTH',key: 'es',     score: 0 },
-  { name: 'SEASONAL',  key: 'season', score: 0 },
-  { name: 'LIN REG',   key: 'linreg', score: 0 },
-  { name: 'ARIMA SIM', key: 'arima',  score: 0 },
-  { name: 'ENSEMBLE',  key: 'ens',    score: 0 },
+// ════════════════════════════════════════
+//  HEALTH RISK ENGINE
+// ════════════════════════════════════════
+const HEALTH_DATA=[
+  {msg:'Air quality is excellent. Enjoy outdoor activities freely. No health precautions needed.',resp:'MINIMAL',card:'MINIMAL',eye:'MINIMAL',neuro:'MINIMAL',col:'#00e676',seg:0},
+  {msg:'Air quality is acceptable for most people. Unusually sensitive individuals may experience minor symptoms during prolonged outdoor exertion.',resp:'LOW',card:'LOW',eye:'LOW',neuro:'LOW',col:'#ffee58',seg:1},
+  {msg:'Sensitive groups (children, elderly, asthma/heart patients) may experience health effects. General public is less likely to be affected.',resp:'MODERATE',card:'LOW',eye:'MODERATE',neuro:'LOW',col:'#ff9800',seg:2},
+  {msg:'Everyone may begin to experience health effects. Sensitive group members may experience more serious effects. Reduce prolonged outdoor exertion.',resp:'HIGH',card:'MODERATE',eye:'HIGH',neuro:'MODERATE',col:'#f44336',seg:3},
+  {msg:'Health alert: Everyone may experience serious health effects. Everyone should avoid all outdoor physical activity.',resp:'VERY HIGH',card:'HIGH',eye:'HIGH',neuro:'HIGH',col:'#9c27b0',seg:4},
+  {msg:'Health emergency: Everyone is likely to be affected. Avoid all outdoor exposure. Emergency health protocols recommended.',resp:'CRITICAL',card:'CRITICAL',eye:'CRITICAL',neuro:'HIGH',col:'#7b1fa2',seg:5},
 ];
-
-function wma(hist, h) {
-  const n = Math.min(hist.length, 6);
-  const slice = hist.slice(-n);
-  let num=0, den=0;
-  slice.forEach((v,i) => { const w=i+1; num+=v*w; den+=w; });
-  return Array.from({length:h}, (_,i) => Math.max(0, num/den + (Math.random()-0.5)*8));
+function getHealthData(aqi){
+  if(aqi<=50)return HEALTH_DATA[0];if(aqi<=100)return HEALTH_DATA[1];if(aqi<=150)return HEALTH_DATA[2];
+  if(aqi<=200)return HEALTH_DATA[3];if(aqi<=300)return HEALTH_DATA[4];return HEALTH_DATA[5];
+}
+function updateHealthRisk(aqi){
+  const h=getHealthData(aqi);
+  document.getElementById('healthMsg').innerHTML=`<span style="color:${h.col}">${h.msg}</span>`;
+  document.getElementById('imp-resp').textContent=h.resp;document.getElementById('imp-resp').style.color=h.col;
+  document.getElementById('imp-card').textContent=h.card;document.getElementById('imp-card').style.color=h.col;
+  document.getElementById('imp-eye').textContent=h.eye;document.getElementById('imp-eye').style.color=h.col;
+  document.getElementById('imp-neuro').textContent=h.neuro;document.getElementById('imp-neuro').style.color=h.col;
+  document.querySelectorAll('.hs-seg').forEach((s,i)=>{s.classList.toggle('inactive',i!==h.seg);});
 }
 
-function expSmooth(hist, h, alpha=0.35) {
-  let S = hist[hist.length-1];
-  return Array.from({length:h}, () => {
-    S = alpha * hist[hist.length-1] + (1-alpha) * S + (Math.random()-0.5)*6;
-    return Math.max(0, S);
-  });
-}
-
-function seasonal(hist, h, seasonLen=24) {
-  return Array.from({length:h}, (_,i) => {
-    const refIdx = hist.length - seasonLen + i;
-    const base = refIdx >= 0 ? hist[refIdx % hist.length] : hist[hist.length-1];
-    return Math.max(0, base + (Math.random()-0.5)*10);
-  });
-}
-
-function linReg(hist, h) {
-  const n = hist.length;
-  const xs = Array.from({length:n},(_,i)=>i);
-  const mx = xs.reduce((a,b)=>a+b,0)/n;
-  const my = hist.reduce((a,b)=>a+b,0)/n;
-  const num = xs.reduce((s,x,i)=>s+(x-mx)*(hist[i]-my),0);
-  const den = xs.reduce((s,x)=>s+(x-mx)**2,0);
-  const slope = num/den, intercept = my - slope*mx;
-  return Array.from({length:h}, (_,i) => Math.max(0, slope*(n+i)+intercept + (Math.random()-0.5)*7));
-}
-
-function arimaSimple(hist, h) {
-  const diffs = hist.slice(1).map((v,i)=>v-hist[i]);
-  const avgDiff = diffs.reduce((a,b)=>a+b,0)/diffs.length;
-  let last = hist[hist.length-1];
-  return Array.from({length:h}, () => {
-    last = Math.max(0, last + avgDiff * 0.3 + (Math.random()-0.5)*9);
-    return last;
-  });
-}
-
-function hyperHeuristic(hist, h=8) {
-  const preds = {
-    wma:    wma(hist, h),
-    es:     expSmooth(hist, h),
-    season: seasonal(hist, h),
-    linreg: linReg(hist, h),
-    arima:  arimaSimple(hist, h),
-  };
-
-  // Fitness: measure how close each algo's "last step" prediction would've been
-  const validateOn = 6;
-  const trainHist = hist.slice(0,-validateOn);
-  const actual = hist.slice(-validateOn);
-
-  const fitnessScores = {};
-  Object.keys(preds).forEach(k => {
-    const validation = {
-      wma:    wma(trainHist, validateOn),
-      es:     expSmooth(trainHist, validateOn),
-      season: seasonal(trainHist, validateOn),
-      linreg: linReg(trainHist, validateOn),
-      arima:  arimaSimple(trainHist, validateOn),
-    }[k];
-    const mae = validation.reduce((s,v,i)=>s+Math.abs(v-actual[i]),0)/validateOn;
-    fitnessScores[k] = Math.max(0, 100 - mae);
-  });
-
-  // Update algorithm display scores
-  algorithms.forEach(a => {
-    if (fitnessScores[a.key] !== undefined) a.score = fitnessScores[a.key];
-  });
-
-  // Hyper-heuristic: weighted ensemble by fitness
-  const totalFit = Object.values(fitnessScores).reduce((a,b)=>a+b,0);
-  const weights = {};
-  Object.keys(fitnessScores).forEach(k => weights[k] = fitnessScores[k]/totalFit);
-
-  const ensemble = Array.from({length:h}, (_,i) =>
-    Object.keys(preds).reduce((s,k) => s + preds[k][i] * weights[k], 0)
-  );
-  algorithms.find(a=>a.key==='ens').score = Math.min(99.9,
-    Object.values(fitnessScores).reduce((a,b)=>a+b,0)/Object.keys(fitnessScores).length + 5
-  );
-
-  return { ensemble, preds, weights, fitnessScores };
-}
-
-// ══════════════════════════════════════════════
-//  PREDICTION CARDS RENDER
-// ══════════════════════════════════════════════
-function renderPredictions(baseAqi, hist) {
-  const now = new Date();
-  const { ensemble } = hyperHeuristic(hist);
-  predData = ensemble.map((aqi, i) => {
-    const t = new Date(now.getTime() + (i+1)*3600000);
-    return {
-      hour: t.getHours().toString().padStart(2,'0') + ':00',
-      aqi: Math.round(aqi)
-    };
-  });
-
-  const grid = document.getElementById('predGrid');
-  grid.innerHTML = predData.map(p => {
-    const col = aqiColor(p.aqi);
-    return `<div class="pred-card">
-      <div class="pred-hour">${p.hour}</div>
-      <div class="pred-aqi" style="color:${col};text-shadow:0 0 10px ${col}88">${p.aqi}</div>
-      <div class="pred-dot" style="background:${col};box-shadow:0 0 6px ${col}"></div>
-    </div>`;
+// ════════════════════════════════════════
+//  POLLUTANTS
+// ════════════════════════════════════════
+const PLIM={co:[0,10000],no:[0,200],no2:[0,200],o3:[0,180],so2:[0,350],pm2_5:[0,150],pm10:[0,200],nh3:[0,200]};
+const PCOL={co:'#00d4ff',no:'#ff6b35',no2:'#ffb800',o3:'#00ff9d',so2:'#ff3060',pm2_5:'#9c6dff',pm10:'#ff9800',nh3:'#4db8ff'};
+function renderPollutants(comp){
+  const keys=['pm2_5','pm10','o3','no2','so2','co','no','nh3'],lbls=['PM2.5','PM10','O₃','NO₂','SO₂','CO','NO','NH₃'];
+  document.getElementById('pollutantsContainer').innerHTML=keys.map((k,i)=>{
+    const v=comp[k]||0,col=PCOL[k],lim=PLIM[k],pct=Math.min((v-lim[0])/(lim[1]-lim[0])*100,100).toFixed(1);
+    return`<div class="poll-item"><div class="poll-nm">${lbls[i]}</div><div class="poll-bw"><div class="poll-b" style="width:${pct}%;background:${col};box-shadow:0 0 5px ${col}88"></div></div><div class="poll-v">${v.toFixed(1)}<span style="color:var(--muted);font-size:.55rem"> µg/m³</span></div></div>`;
   }).join('');
-
-  renderAlgos();
 }
 
-// ══════════════════════════════════════════════
-//  ALGORITHM PANEL RENDER
-// ══════════════════════════════════════════════
-function renderAlgos() {
-  const grid = document.getElementById('algoGrid');
-  const descs = {
-    wma:'Weighted Avg', es:'α-Smoothing', season:'Diurnal',
-    linreg:'Trend Line', arima:'Diff Model', ens:'Best Blend'
-  };
-  grid.innerHTML = algorithms.map(a => {
-    const sc = a.score.toFixed(1);
-    const pct = Math.min(a.score,100);
-    return `<div class="algo-card">
-      <div class="algo-name">${a.name}</div>
-      <div class="algo-bar-wrap">
-        <div class="algo-bar" style="width:${pct}%"></div>
+// ════════════════════════════════════════
+//  CHARTS
+// ════════════════════════════════════════
+function buildHistChart(labels,values,forecast=false,lo=[],hi=[]){
+  if(histChart)histChart.destroy();
+  const ctx=document.getElementById('aqiChart').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,160);
+  const pc=forecast?'rgba(0,255,157,':'rgba(0,212,255,';
+  grad.addColorStop(0,pc+'0.25)');grad.addColorStop(1,pc+'0)');
+  const datasets=[{label:'AQI',data:values,borderColor:forecast?'#00ff9d':'#00d4ff',borderWidth:2,
+    pointBackgroundColor:values.map(v=>aqiColor(v)),pointRadius:3,pointHoverRadius:6,
+    fill:true,backgroundColor:grad,tension:.42}];
+  if(forecast&&lo.length){
+    datasets.push({label:'Upper',data:hi,borderColor:'rgba(0,255,157,.18)',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:'+1',backgroundColor:'rgba(0,255,157,.07)',tension:.4});
+    datasets.push({label:'Lower',data:lo,borderColor:'rgba(0,255,157,.18)',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:false,tension:.4});
+  }
+  histChart=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,
+    interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{
+      backgroundColor:'#080e1a',borderColor:'#1a2a3a',borderWidth:1,titleColor:'#00d4ff',bodyColor:'#c8dde8',
+      titleFont:{family:'Share Tech Mono'},callbacks:{label:c=>`AQI: ${Math.round(c.raw)}`}}},
+    scales:{x:{grid:{color:'rgba(26,42,58,.5)'},ticks:{color:'#4a6070',font:{family:'Share Tech Mono',size:9}}},
+      y:{grid:{color:'rgba(26,42,58,.5)'},ticks:{color:'#4a6070',font:{family:'Share Tech Mono',size:9}},beginAtZero:true,max:320}}}});
+}
+function switchTab(btn,tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentTab=tab;if(!currentData)return;renderTab(tab);
+}
+function renderTab(tab){
+  if(tab==='24h')buildHistChart(currentData.h24.labels,currentData.h24.values);
+  else if(tab==='7d')buildHistChart(currentData.d7.labels,currentData.d7.values);
+  else if(tab==='pred'&&predData.length)buildHistChart(predData.map(p=>p.hour),predData.map(p=>p.aqi),true,predData.map(p=>p.lo),predData.map(p=>p.hi));
+}
+function buildFcastChart(labels,ensemble,lower,upper,anomalies){
+  if(fcastChart)fcastChart.destroy();
+  const ctx=document.getElementById('predChart').getContext('2d');
+  fcastChart=new Chart(ctx,{type:'line',
+    data:{labels,datasets:[
+      {label:'Upper CI',data:upper,borderColor:'rgba(0,255,157,.2)',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:'+1',backgroundColor:'rgba(0,255,157,.07)',tension:.4},
+      {label:'Lower CI',data:lower,borderColor:'rgba(0,255,157,.2)',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:false,tension:.4},
+      {label:'Forecast',data:ensemble,borderColor:'#00ff9d',borderWidth:2.5,
+       pointBackgroundColor:ensemble.map((v,i)=>anomalies[i]?'#ff3060':aqiColor(v)),
+       pointRadius:ensemble.map((_,i)=>anomalies[i]?7:3),
+       pointStyle:ensemble.map((_,i)=>anomalies[i]?'triangle':'circle'),
+       fill:false,tension:.42},
+    ]},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#080e1a',borderColor:'#1a2a3a',borderWidth:1,
+        titleColor:'#00ff9d',bodyColor:'#c8dde8',titleFont:{family:'Share Tech Mono'},
+        callbacks:{label:c=>{if(c.dataset.label!=='Forecast')return null;
+          const i=c.dataIndex;const[cat]=aqiCatLabel(Math.round(c.raw));
+          return[`AQI: ${Math.round(c.raw)} — ${cat}`,`CI: ${lower[i]}–${upper[i]}`,anomalies[i]?'⚠ ANOMALY':''].filter(Boolean);
+        },filter:it=>it.dataset.label==='Forecast'}}},
+      scales:{x:{grid:{color:'rgba(26,42,58,.4)'},ticks:{color:'#4a6070',font:{family:'Share Tech Mono',size:9},maxRotation:0,maxTicksLimit:12}},
+        y:{grid:{color:'rgba(26,42,58,.4)'},ticks:{color:'#4a6070',font:{family:'Share Tech Mono',size:9}},beginAtZero:true,max:320}}}});
+}
+
+// ════════════════════════════════════════
+//  PRECAUTIONS ENGINE
+// ════════════════════════════════════════
+const PREC_DATA=[
+  {title:'AQI 0–50: GOOD',sub:'Air quality poses little or no risk. Normal activities recommended.',color:'#00e676',
+   cards:[
+    {icon:'🏃',title:'OUTDOOR ACTIVITY',items:['Running, cycling, hiking all safe','Children can play outdoors freely','Elderly and sensitive groups: normal activity OK','Ideal time for outdoor sports and events']},
+    {icon:'🪟',title:'VENTILATION',items:['Open windows and doors freely','Natural ventilation recommended','No air purifier required','Great time for airing out your home']},
+    {icon:'🌿',title:'WELLNESS',items:['Enjoy fresh air for mental wellness','Practice outdoor yoga or meditation','Garden and spend time in nature','No dietary supplements required for AQI alone']},
+   ]},
+  {title:'AQI 51–100: MODERATE',sub:'Acceptable for most people. Unusually sensitive individuals may need minor precautions.',color:'#ffee58',
+   cards:[
+    {icon:'🤧',title:'SENSITIVE GROUPS',items:['People with respiratory issues: limit extended outdoor exertion','Asthmatics: carry inhaler outdoors','Children with lung conditions: monitor symptoms','Reduce outdoor intensity if you feel symptoms']},
+    {icon:'💧',title:'HYDRATION',items:['Increase water intake to 2.5L/day','Rinse nasal passages after outdoor time','Wear sunglasses to protect eyes from ozone','Use moisturizer — ozone can dry skin']},
+    {icon:'🏠',title:'INDOOR TIPS',items:['Run air purifier in baby rooms','Avoid burning incense or candles','Keep bedroom windows closed at night','Monitor AQI before outdoor plans']},
+   ]},
+  {title:'AQI 101–150: UNHEALTHY FOR SENSITIVE GROUPS',sub:'Sensitive groups should take active precautions. General public: minor risk.',color:'#ff9800',
+   cards:[
+    {icon:'😷',title:'MASK UP',items:['Sensitive groups: wear N95 outdoors','Avoid prolonged exposure near roads/traffic','Limit outdoor exercise to 30 min max','Choose less-trafficked walking routes']},
+    {icon:'🏥',title:'HEALTH MONITORING',items:['Asthmatics: use preventive inhaler','Check blood oxygen levels if symptomatic','Children under 12: no outdoor sports today','Elderly: stay indoors during 12–4PM ozone peak']},
+    {icon:'🏘️',title:'HOME PROTECTION',items:['Run HEPA purifier on medium-high','Keep windows closed 8AM–6PM','Avoid cleaning with chemical sprays today','Cook with exhaust fan at all times']},
+   ]},
+  {title:'AQI 151–200: UNHEALTHY',sub:'Everyone may experience health effects. Active precautions required for all.',color:'#f44336',
+   cards:[
+    {icon:'🚫',title:'RESTRICT ACTIVITY',items:['Cancel all outdoor strenuous exercise','Move children\'s activities fully indoors','Work from home if possible today','No outdoor dining or gatherings']},
+    {icon:'😷',title:'PROTECTION REQUIRED',items:['N95 mask mandatory for all outdoor trips','Limit trips outside to essential only','Wear full-sleeved clothing to reduce skin exposure','Change clothes and shower immediately after outdoor time']},
+    {icon:'💊',title:'MEDICAL READINESS',items:['Asthmatics: increase preventive inhaler frequency','Keep antihistamines readily available','Nebulizer ready for respiratory patients','Contact doctor if breathing difficulty occurs']},
+   ]},
+  {title:'AQI 201–300: VERY UNHEALTHY',sub:'Health alert. Serious effects for everyone. Emergency precautions needed.',color:'#9c27b0',
+   cards:[
+    {icon:'🏠',title:'STAY INDOORS',items:['Everyone: remain indoors all day','Seal door and window gaps with tape/cloth','Run air purifier on maximum continuously','Close fireplace dampers and exhaust vents']},
+    {icon:'🚨',title:'EMERGENCY PREP',items:['Have emergency contacts ready','Prepare for possible hospital visit if symptomatic','Stock N95 masks and emergency medications','Avoid cooking methods that generate smoke indoors']},
+    {icon:'📵',title:'AVOID SOURCES',items:['No vehicle use — adds to pollution','Cancel all events generating smoke or dust','Report illegal burning to authorities','Spread awareness — share AQI with neighbours']},
+   ]},
+  {title:'AQI 301+: HAZARDOUS',sub:'Health emergency. Life-threatening conditions for everyone.',color:'#7b1fa2',
+   cards:[
+    {icon:'🆘',title:'HEALTH EMERGENCY',items:['Call doctor if any respiratory symptoms','Children, elderly: treat as medical emergency','N95 mask even indoors if purifier unavailable','Use wet towels to seal door gaps from outside air']},
+    {icon:'🏫',title:'INSTITUTIONAL CLOSURE',items:['Schools and colleges should close','Outdoor construction work must halt','All public events must be cancelled','Authorities should issue public health advisory']},
+    {icon:'🌬️',title:'INDOOR AIR SURVIVAL',items:['Multi-stage air purification required','Create a "clean room" — one room with max purification','Avoid all indoor combustion sources','Steam inhalation every 4 hours to clear airways']},
+   ]},
+];
+function selectAqiBand(idx,el){
+  document.querySelectorAll('.prec-aqi-band').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  const d=PREC_DATA[idx];
+  document.getElementById('precDetail').innerHTML=`
+    <div class="prec-detail" style="border-color:${d.color}44">
+      <div class="prec-title" style="color:${d.color}">${d.title}</div>
+      <div class="prec-sub">${d.sub}</div>
+      <div class="prec-cards">${d.cards.map(c=>`
+        <div class="prec-card">
+          <div class="prec-card-icon">${c.icon}</div>
+          <div class="prec-card-title">${c.title}</div>
+          <ul>${c.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+        </div>`).join('')}
       </div>
-      <div class="algo-score">${sc}<span style="font-size:0.6rem;color:var(--muted)">%</span></div>
-      <div class="algo-label">${descs[a.key]}</div>
     </div>`;
+}
+selectAqiBand(0,document.querySelector('.prec-aqi-band'));
+
+// ════════════════════════════════════════
+//  REMEDY TABS
+// ════════════════════════════════════════
+function switchRemedy(id,btn){
+  document.querySelectorAll('.remedy-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.remedy-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('rem-'+id).classList.add('active');
+}
+
+// ════════════════════════════════════════
+//  DAILY CHECKLIST
+// ════════════════════════════════════════
+function resetChecklist(){document.querySelectorAll('#dailyChecklist input[type=checkbox]').forEach(c=>c.checked=false);}
+
+// ════════════════════════════════════════
+//  HYPER-HEURISTIC ENGINE
+// ════════════════════════════════════════
+const ALGOS=[
+  {name:'WMA',key:'wma',score:0,mae:0,rmse:0,desc:'Power-Weighted Avg'},
+  {name:'HOLT-ES',key:'holt',score:0,mae:0,rmse:0,desc:'Double Exp Smoothing'},
+  {name:'SEASONAL',key:'seas',score:0,mae:0,rmse:0,desc:'24h Diurnal Pattern'},
+  {name:'LIN REG',key:'lin',score:0,mae:0,rmse:0,desc:'Dampened Trend Line'},
+  {name:'ARIMA(1,1)',key:'arima',score:0,mae:0,rmse:0,desc:'Differenced AR Model'},
+  {name:'LSTM-LIKE',key:'lstm',score:0,mae:0,rmse:0,desc:'Gated Memory Window'},
+  {name:'POLY REG',key:'poly',score:0,mae:0,rmse:0,desc:'Polynomial Curve Fit'},
+  {name:'ENSEMBLE★',key:'ens',score:0,mae:0,rmse:0,desc:'Hyper-Heuristic Blend'},
+];
+function algoWMA(h,H){const n=Math.min(h.length,8),sl=h.slice(-n);let num=0,den=0;sl.forEach((v,i)=>{const w=(i+1)**1.5;num+=v*w;den+=w;});const base=num/den,trend=(sl[sl.length-1]-sl[0])/(sl.length-1||1);return Array.from({length:H},(_,i)=>Math.max(0,base+trend*i*0.22));}
+function algoHolt(h,H,a=0.4,b=0.2){let L=h[0],T=h[1]-h[0];for(let i=1;i<h.length;i++){const Lp=L,Tp=T;L=a*h[i]+(1-a)*(Lp+Tp);T=b*(L-Lp)+(1-b)*Tp;}return Array.from({length:H},(_,i)=>Math.max(0,L+(i+1)*T));}
+function algoSeas(h,H,P=24){const si=Array.from({length:P},(_,s)=>{const v=[];for(let i=s;i<h.length;i+=P)v.push(h[i]);return v.length?v.reduce((a,b)=>a+b)/v.length:h[h.length-1];});const base=h.slice(-Math.min(P,h.length)).reduce((a,b)=>a+b)/Math.min(P,h.length);const mu=h.reduce((a,b)=>a+b)/h.length||1;return Array.from({length:H},(_,i)=>Math.max(0,base*(si[(h.length+i)%P]/mu)));}
+function algoLin(h,H){const n=h.length,xs=Array.from({length:n},(_,i)=>i);const mx=xs.reduce((a,b)=>a+b)/n,my=h.reduce((a,b)=>a+b)/n;const num=xs.reduce((s,x,i)=>s+(x-mx)*(h[i]-my),0);const den=xs.reduce((s,x)=>s+(x-mx)**2,0)||1;const sl=num/den,ic=my-sl*mx;return Array.from({length:H},(_,i)=>Math.max(0,(sl*(n+i)+ic)*Math.exp(-0.035*i)+my*(1-Math.exp(-0.035*i))));}
+function algoARIMA(h,H){const d=h.slice(1).map((v,i)=>v-h[i]),n=d.length,mu=d.reduce((a,b)=>a+b)/n;const num=d.slice(1).reduce((s,v,i)=>s+(d[i]-mu)*(v-mu),0);const den=d.slice(0,-1).reduce((s,v)=>s+(v-mu)**2,0)||1;const phi=Math.max(-0.9,Math.min(0.9,num/den));let lv=h[h.length-1],ld=d[d.length-1];return Array.from({length:H},()=>{const nd=phi*(ld-mu)+mu;lv=Math.max(0,lv+nd*0.35);ld=nd;return lv;});}
+function algoLSTM(h,H){const ws=Math.min(12,h.length),win=h.slice(-ws);const fg=win.map((_,i)=>Math.exp(-0.1*(ws-1-i)));const fgs=fg.reduce((a,b)=>a+b);const cell=win.reduce((s,v,i)=>s+v*fg[i])/fgs;const mom=(h[h.length-1]-h[Math.max(0,h.length-4)])/3;let st=cell;return Array.from({length:H},(_,i)=>{st=Math.max(0,st+mom*Math.exp(-0.09*i)*0.5);return st;});}
+function algoPoly(h,H){const n=h.length;if(n<4)return algoLin(h,H);const xs=Array.from({length:n},(_,i)=>i/n);let s0=n,s1=0,s2=0,s3=0,s4=0,t0=0,t1=0,t2=0;xs.forEach((x,i)=>{s1+=x;s2+=x**2;s3+=x**3;s4+=x**4;t0+=h[i];t1+=h[i]*x;t2+=h[i]*x**2;});const A=[[s0,s1,s2],[s1,s2,s3],[s2,s3,s4]],bv=[t0,t1,t2];const det=m=>m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);const D=det(A);if(Math.abs(D)<1e-10)return algoLin(h,H);const c0=det(A.map((r,i)=>r.map((v,j)=>j===0?bv[i]:v)))/D;const c1=det(A.map((r,i)=>r.map((v,j)=>j===1?bv[i]:v)))/D;const c2=det(A.map((r,i)=>r.map((v,j)=>j===2?bv[i]:v)))/D;return Array.from({length:H},(_,i)=>{const x=(n+i)/n;return Math.max(0,c0+c1*x+c2*x**2);});}
+const FNS={wma:algoWMA,holt:algoHolt,seas:algoSeas,lin:algoLin,arima:algoARIMA,lstm:algoLSTM,poly:algoPoly};
+function calcMAE(p,a){const n=Math.min(p.length,a.length);return n?p.slice(0,n).reduce((s,v,i)=>s+Math.abs(v-a[i]),0)/n:0;}
+function calcRMSE(p,a){const n=Math.min(p.length,a.length);return n?Math.sqrt(p.slice(0,n).reduce((s,v,i)=>s+(v-a[i])**2,0)/n):0;}
+function calcMAPE(p,a){const n=Math.min(p.length,a.length);return n?p.slice(0,n).reduce((s,v,i)=>s+(a[i]?Math.abs(v-a[i])/a[i]:0),0)/n*100:0;}
+function rollingStd(h,w=8){const sl=h.slice(-w),m=sl.reduce((a,b)=>a+b)/sl.length;return Math.sqrt(sl.reduce((s,v)=>s+(v-m)**2,0)/sl.length)||5;}
+function wxBias(wx){if(!wx)return 1;let f=1;if(wx.humidity>80)f+=0.08;else if(wx.humidity<30)f-=0.05;if(wx.wind>8)f-=0.1;else if(wx.wind<2)f+=0.07;if(wx.pressure<1005)f+=0.05;return Math.max(0.7,Math.min(1.3,f));}
+function hyperHeuristic(hist,H=24,wx=null){
+  while(hist.length<14)hist.unshift(hist[0]||50);
+  const valK=Math.min(8,Math.floor(hist.length*0.25));
+  const train=hist.slice(0,-valK),actual=hist.slice(-valK);
+  const fitness={},maes={},rmses={},mapes={};
+  Object.entries(FNS).forEach(([k,fn])=>{const vp=fn(train,valK);maes[k]=calcMAE(vp,actual);rmses[k]=calcRMSE(vp,actual);mapes[k]=calcMAPE(vp,actual);fitness[k]=100/(1+maes[k]);});
+  const maxF=Math.max(...Object.values(fitness));let smSum=0;const sm={};
+  Object.keys(fitness).forEach(k=>{sm[k]=Math.exp(fitness[k]-maxF);smSum+=sm[k];});
+  const W={};Object.keys(sm).forEach(k=>W[k]=sm[k]/smSum);
+  const preds={};Object.entries(FNS).forEach(([k,fn])=>{preds[k]=fn(hist,H);});
+  const wf=wxBias(wx);
+  const ensemble=Array.from({length:H},(_,i)=>Math.max(0,Object.keys(preds).reduce((s,k)=>s+preds[k][i]*W[k],0)*wf));
+  const sigma=rollingStd(hist);
+  const lower=ensemble.map((v,i)=>Math.max(0,v-sigma*(1+i*0.065)));
+  const upper=ensemble.map((v,i)=>v+sigma*(1+i*0.065));
+  const em=ensemble.reduce((a,b)=>a+b)/ensemble.length;
+  const es=Math.sqrt(ensemble.reduce((s,v)=>s+(v-em)**2,0)/ensemble.length)||1;
+  const anomalies=ensemble.map(v=>Math.abs(v-em)/es>2.2);
+  const ensMAE=Object.keys(FNS).reduce((s,k)=>s+maes[k]*W[k],0);
+  const ensRMSE=Math.sqrt(Object.keys(FNS).reduce((s,k)=>s+rmses[k]**2*W[k],0));
+  const ensMAPE=Object.keys(FNS).reduce((s,k)=>s+mapes[k]*W[k],0);
+  ALGOS.forEach(a=>{if(fitness[a.key]!==undefined){a.score=Math.min(99.9,fitness[a.key]*10);a.mae=maes[a.key];a.rmse=rmses[a.key];}});
+  const ensA=ALGOS.find(a=>a.key==='ens');if(ensA){ensA.score=Math.min(99.9,maxF*10+6);ensA.mae=ensMAE;ensA.rmse=ensRMSE;}
+  const bestAlgo=Object.entries(fitness).sort((a,b)=>b[1]-a[1])[0][0];
+  return{ensemble,preds,W,fitness,lower,upper,anomalies,sigma,wf,ensMAE,ensRMSE,ensMAPE,bestAlgo};
+}
+
+// ════════════════════════════════════════
+//  RENDER PREDICTIONS
+// ════════════════════════════════════════
+function renderPredictions(hist,wx=null){
+  const now=new Date(),H=24;
+  const R=hyperHeuristic([...hist],H,wx);
+  const{ensemble,lower,upper,anomalies,wf,ensMAE,ensRMSE,ensMAPE,bestAlgo}=R;
+  predData=ensemble.map((aqi,i)=>{const t=new Date(now.getTime()+(i+1)*3600000);return{hour:t.getHours().toString().padStart(2,'0')+':00',aqi:Math.round(aqi),lo:Math.round(lower[i]),hi:Math.round(upper[i]),anomaly:anomalies[i]};});
+  const f6=ensemble.slice(0,6).reduce((a,b)=>a+b)/6,l6=ensemble.slice(-6).reduce((a,b)=>a+b)/6,delta=l6-f6;
+  const trend=delta>15?'▲ WORSENING':delta<-15?'▼ IMPROVING':'● STABLE';
+  const tcol=delta>15?'var(--danger)':delta<-15?'var(--accent2)':'var(--warn)';
+  const pI=ensemble.indexOf(Math.max(...ensemble)),pAqi=Math.round(ensemble[pI]);
+  const ac=anomalies.filter(Boolean).length;
+  document.getElementById('statsBar').innerHTML=`
+    <span style="color:${tcol};font-family:'Share Tech Mono',monospace;font-size:.64rem">${trend}</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:.64rem;color:var(--muted)">PEAK <span style="color:${aqiColor(pAqi)}">${predData[pI].hour} → ${pAqi}</span></span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:.64rem;color:var(--muted)">TOP ALGO <span style="color:var(--accent)">${bestAlgo.toUpperCase()}</span></span>
+    ${ac?`<span style="color:var(--danger);font-family:'Share Tech Mono',monospace;font-size:.64rem">⚠ ${ac} ANOMAL${ac>1?'IES':'Y'}</span>`:''}
+    ${wf!==1?`<span style="color:var(--accent3);font-family:'Share Tech Mono',monospace;font-size:.64rem">WX×${wf.toFixed(2)}</span>`:''}`;
+  buildFcastChart(predData.map(p=>p.hour),ensemble.map(Math.round),lower.map(Math.round),upper.map(Math.round),anomalies);
+  document.getElementById('predRow').innerHTML=predData.map(p=>{
+    const col=aqiColor(p.aqi);const[cat]=aqiCatLabel(p.aqi);const sc=cat.split(' ')[0];
+    return`<div class="pred-card${p.anomaly?' anom':''}"><div class="p-hr">${p.hour}</div><div class="p-aqi" style="color:${col};text-shadow:0 0 12px ${col}99">${p.aqi}</div><div class="p-ci">${p.lo}–${p.hi}</div><div class="p-cat" style="color:${col}">${sc}</div><div class="p-dot" style="background:${col};box-shadow:0 0 6px ${col}"></div>${p.anomaly?`<div class="p-flag">⚠</div>`:''}</div>`;
   }).join('');
+  // Algo grid
+  const nonEns=ALGOS.filter(a=>a.key!=='ens').sort((a,b)=>b.score-a.score);
+  const ens=ALGOS.find(a=>a.key==='ens');
+  document.getElementById('algoGrid').innerHTML=[...nonEns,ens].map(a=>{
+    const isEns=a.key==='ens',isTop=a===nonEns[0];
+    const w=R.W[a.key],ws=w!==undefined&&!isEns?`${(w*100).toFixed(0)}%`:'';
+    const bar=isEns?'linear-gradient(90deg,var(--accent3),var(--warn))':isTop?'linear-gradient(90deg,var(--accent2),var(--accent))':'linear-gradient(90deg,var(--accent),#4a8fff)';
+    return`<div class="algo-card${isEns?' star':''}"><div style="display:flex;justify-content:space-between"><div class="a-nm">${isEns?'★ ':isTop?'↑ ':''} ${a.name}</div>${ws?`<div style="font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--accent3)">${ws}</div>`:''}</div><div class="a-bw" style="margin-top:5px"><div class="a-b" style="width:${Math.min(a.score,100)}%;background:${bar}"></div></div><div style="display:flex;justify-content:space-between;margin-top:4px"><div><div class="a-sc">${a.score.toFixed(1)}<span style="font-size:.46rem;color:var(--muted)"> fit</span></div><div class="a-lb">${a.desc}</div></div><div style="text-align:right">${a.mae>0?`<div style="font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--muted)">MAE <span style="color:var(--text)">${a.mae.toFixed(1)}</span></div>`:''}</div></div></div>`;
+  }).join('');
+  // Accuracy row
+  document.getElementById('acc-mae').innerHTML=`<span style="color:var(--accent2)">${ensMAE.toFixed(2)}</span><span style="font-size:.5rem;color:var(--muted)"> AQI</span>`;
+  document.getElementById('acc-rmse').innerHTML=`<span style="color:var(--accent)">${ensRMSE.toFixed(2)}</span><span style="font-size:.5rem;color:var(--muted)"> AQI</span>`;
+  document.getElementById('acc-mape').innerHTML=`<span style="color:var(--warn)">${ensMAPE.toFixed(1)}</span><span style="font-size:.5rem;color:var(--muted)">%</span>`;
+  document.getElementById('acc-anom').innerHTML=`<span style="color:${ac>0?'var(--danger)':'var(--accent2)'}">${ac}</span><span style="font-size:.5rem;color:var(--muted)"> /24h</span>`;
 }
 
-// ══════════════════════════════════════════════
-//  DEMO DATA GENERATOR
-// ══════════════════════════════════════════════
-function generateDemoData(city) {
-  const baseAqi = 55 + Math.random()*70;
-  const now = Date.now();
-  const h24 = Array.from({length:24}, (_,i) => ({
-    t: new Date(now - (23-i)*3600000),
-    aqi: Math.max(10, baseAqi + Math.sin(i/3)*20 + (Math.random()-0.5)*15)
-  }));
-  const d7 = Array.from({length:7}, (_,i) => ({
-    t: new Date(now - (6-i)*86400000),
-    aqi: Math.max(10, baseAqi + (Math.random()-0.5)*40)
-  }));
-  return {
-    city,
-    aqi: Math.round(baseAqi),
-    components: {
-      co: 200+Math.random()*300, no: 1+Math.random()*10,
-      no2: 5+Math.random()*50,   o3: 20+Math.random()*80,
-      so2: 2+Math.random()*30,   pm2_5: 8+Math.random()*50,
-      pm10: 15+Math.random()*80, nh3: 1+Math.random()*15
-    },
-    weather: {
-      temp: 18+Math.random()*20,
-      humidity: 40+Math.random()*50,
-      wind: 1+Math.random()*10,
-      pressure: 1000+Math.random()*30,
-      visibility: 5+Math.random()*15,
-      uvi: Math.random()*10
-    },
-    h24: {
-      labels: h24.map(d => d.t.getHours().toString().padStart(2,'0')+':00'),
-      values: h24.map(d => d.aqi)
-    },
-    d7: {
-      labels: d7.map(d => d.t.toLocaleDateString('en',{weekday:'short'})),
-      values: d7.map(d => d.aqi)
-    },
-    hist: h24.map(d => d.aqi)
-  };
+// ════════════════════════════════════════
+//  DEMO DATA
+// ════════════════════════════════════════
+function generateDemo(city){
+  const base=55+Math.random()*70,now=Date.now();
+  const h48=Array.from({length:48},(_,i)=>({t:new Date(now-(47-i)*3600000),aqi:Math.max(10,base+Math.sin(i/4)*22+(Math.random()-.5)*14)}));
+  const d7=Array.from({length:7},(_,i)=>({t:new Date(now-(6-i)*86400000),aqi:Math.max(10,base+(Math.random()-.5)*42)}));
+  return{city,aqi:Math.round(base),
+    components:{co:220+Math.random()*280,no:1+Math.random()*10,no2:6+Math.random()*48,o3:22+Math.random()*78,so2:2+Math.random()*28,pm2_5:10+Math.random()*48,pm10:18+Math.random()*78,nh3:1+Math.random()*13},
+    weather:{temp:20+Math.random()*18,humidity:45+Math.random()*45,wind:1.5+Math.random()*9,pressure:1002+Math.random()*28,visibility:6+Math.random()*14,uvi:Math.random()*9},
+    h24:{labels:h48.slice(-24).map(d=>d.t.getHours().toString().padStart(2,'0')+':00'),values:h48.slice(-24).map(d=>d.aqi)},
+    d7:{labels:d7.map(d=>d.t.toLocaleDateString('en',{weekday:'short'})),values:d7.map(d=>d.aqi)},
+    hist:h48.map(d=>d.aqi)};
 }
 
-// ══════════════════════════════════════════════
-//  FETCH REAL DATA FROM OWM
-// ══════════════════════════════════════════════
-async function fetchRealData(city) {
-  // Step 1: geocode
-  const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${OWM_KEY}`;
-  const geoRes = await fetch(geoUrl);
-  if (!geoRes.ok) throw new Error('Geocoding failed');
-  const geo = await geoRes.json();
-  if (!geo.length) throw new Error('City not found');
-  const { lat, lon, name } = geo[0];
-
-  // Step 2: current AQI
-  const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OWM_KEY}`);
-  const aqiData = await aqiRes.json();
-  const entry = aqiData.list[0];
-  const aqiVal = owmToAqi(entry.main.aqi);
-  const components = entry.components;
-
-  // Step 3: weather
-  const wxRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OWM_KEY}`);
-  const wx = await wxRes.json();
-
-  // Step 4: historical 24h
-  const end = Math.floor(Date.now()/1000);
-  const start = end - 86400;
-  const histRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start}&end=${end}&appid=${OWM_KEY}`);
-  const histData = await histRes.json();
-  const h24list = histData.list || [];
-  const h24 = {
-    labels: h24list.filter((_,i)=>i%3===0).map(d => {
-      const t = new Date(d.dt*1000);
-      return t.getHours().toString().padStart(2,'0')+':00';
-    }),
-    values: h24list.filter((_,i)=>i%3===0).map(d => owmToAqi(d.main.aqi))
-  };
-
-  // 7d history
-  const start7 = end - 7*86400;
-  const hist7Res = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${start7}&end=${end}&appid=${OWM_KEY}`);
-  const hist7Data = await hist7Res.json();
-  const h7list = hist7Data.list || [];
-  const dayMap = {};
-  h7list.forEach(d => {
-    const day = new Date(d.dt*1000).toLocaleDateString('en',{weekday:'short'});
-    if (!dayMap[day]) dayMap[day] = [];
-    dayMap[day].push(owmToAqi(d.main.aqi));
-  });
-  const d7 = {
-    labels: Object.keys(dayMap),
-    values: Object.values(dayMap).map(arr => arr.reduce((a,b)=>a+b,0)/arr.length)
-  };
-
-  return {
-    city: name,
-    aqi: aqiVal,
-    components,
-    weather: {
-      temp: wx.main.temp,
-      humidity: wx.main.humidity,
-      wind: wx.wind.speed,
-      pressure: wx.main.pressure,
-      visibility: (wx.visibility||10000)/1000,
-      uvi: 0
-    },
-    h24, d7,
-    hist: h24list.map(d => owmToAqi(d.main.aqi))
-  };
+// ════════════════════════════════════════
+//  FETCH REAL DATA
+// ════════════════════════════════════════
+async function fetchRealData(city){
+  const geo=await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${OWM_KEY}`).then(r=>r.json());
+  if(!geo.length)throw new Error('City not found');
+  const{lat,lon,name}=geo[0];
+  const[aR,wR]=await Promise.all([
+    fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OWM_KEY}`).then(r=>r.json()),
+    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OWM_KEY}`).then(r=>r.json()),
+  ]);
+  const entry=aR.list[0];
+  const end=Math.floor(Date.now()/1000);
+  const hR=await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${end-172800}&end=${end}&appid=${OWM_KEY}`).then(r=>r.json());
+  const hL=hR.list||[];
+  const h7R=await fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${end-604800}&end=${end}&appid=${OWM_KEY}`).then(r=>r.json());
+  const h7L=h7R.list||[];const dm={};
+  h7L.forEach(d=>{const day=new Date(d.dt*1000).toLocaleDateString('en',{weekday:'short'});if(!dm[day])dm[day]=[];dm[day].push(owmToAqi(d.main.aqi));});
+  return{city:name,aqi:owmToAqi(entry.main.aqi),components:entry.components,
+    weather:{temp:wR.main.temp,humidity:wR.main.humidity,wind:wR.wind.speed,pressure:wR.main.pressure,visibility:(wR.visibility||10000)/1000,uvi:0},
+    h24:{labels:hL.filter((_,i)=>i%2===0).slice(-24).map(d=>new Date(d.dt*1000).getHours().toString().padStart(2,'0')+':00'),
+         values:hL.filter((_,i)=>i%2===0).slice(-24).map(d=>owmToAqi(d.main.aqi))},
+    d7:{labels:Object.keys(dm),values:Object.values(dm).map(a=>a.reduce((x,b)=>x+b)/a.length)},
+    hist:hL.map(d=>owmToAqi(d.main.aqi))};
 }
 
-// ══════════════════════════════════════════════
+// ════════════════════════════════════════
 //  UPDATE UI
-// ══════════════════════════════════════════════
-function updateUI(data) {
-  currentData = data;
-
-  // AQI value + gauge
-  document.getElementById('aqiValue').textContent = data.aqi;
-  const [cat, col] = aqiCategory(data.aqi);
-  document.getElementById('aqiValue').style.color = col;
-  document.getElementById('aqiValue').style.textShadow = `0 0 30px ${col}88`;
-  document.getElementById('aqiCategory').textContent = cat;
-  document.getElementById('aqiCategory').style.color = col;
-  document.getElementById('locationName').textContent = '📍 ' + data.city;
+// ════════════════════════════════════════
+function updateUI(data){
+  currentData=data;
+  const[cat,col]=aqiCatLabel(data.aqi);
+  document.getElementById('aqiValue').textContent=data.aqi;
+  document.getElementById('aqiValue').style.cssText=`color:${col};text-shadow:0 0 26px ${col}88`;
+  document.getElementById('aqiCat').textContent=cat;document.getElementById('aqiCat').style.color=col;
+  document.getElementById('locName').textContent='📍 '+data.city;
+  document.getElementById('dailyAqiRef').textContent=`${data.aqi} — ${cat}`;
+  document.getElementById('dailyAqiRef').style.color=col;
   drawGauge(data.aqi);
-
-  // Pollutants
+  updateHealthRisk(data.aqi);
   renderPollutants(data.components);
-
-  // Weather
-  document.getElementById('wTemp').textContent = data.weather.temp.toFixed(1)+'°C';
-  document.getElementById('wHumidity').textContent = data.weather.humidity+'%';
-  document.getElementById('wWind').textContent = data.weather.wind.toFixed(1)+' m/s';
-  document.getElementById('wPressure').textContent = Math.round(data.weather.pressure)+' hPa';
-  document.getElementById('wVis').textContent = data.weather.visibility.toFixed(1)+' km';
-  document.getElementById('wUV').textContent = data.weather.uvi ? data.weather.uvi.toFixed(1) : '--';
-
-  // Chart
+  document.getElementById('wTemp').textContent=data.weather.temp.toFixed(1)+'°C';
+  document.getElementById('wHum').textContent=data.weather.humidity+'%';
+  document.getElementById('wWnd').textContent=data.weather.wind.toFixed(1)+' m/s';
+  document.getElementById('wPres').textContent=Math.round(data.weather.pressure)+' hPa';
+  document.getElementById('wVis').textContent=data.weather.visibility.toFixed(1)+' km';
+  document.getElementById('wUV').textContent=data.weather.uvi?data.weather.uvi.toFixed(1):'--';
   renderTab(currentTab);
-
-  // Predictions
-  const histForPred = data.hist.length > 10 ? data.hist : data.h24.values;
-  renderPredictions(data.aqi, histForPred);
+  // Auto-select current AQI band in precautions
+  const aqi=data.aqi;
+  const bandIdx=aqi<=50?0:aqi<=100?1:aqi<=150?2:aqi<=200?3:aqi<=300?4:5;
+  const bands=document.querySelectorAll('.prec-aqi-band');
+  if(bands[bandIdx])selectAqiBand(bandIdx,bands[bandIdx]);
+  // Run predictions
+  const histForPred=data.hist.length>14?data.hist:data.h24.values;
+  renderPredictions(histForPred,data.weather);
 }
 
-// ══════════════════════════════════════════════
+// ════════════════════════════════════════
 //  MAIN FETCH
-// ══════════════════════════════════════════════
-async function fetchData() {
-  const city = document.getElementById('cityInput').value.trim() || 'Thiruvananthapuram';
-  const overlay = document.getElementById('loadingOverlay');
-  const loadTxt = document.getElementById('loadingText');
-
-  overlay.classList.remove('hidden');
-  loadTxt.textContent = 'ACQUIRING SENSOR DATA...';
-
-  try {
+// ════════════════════════════════════════
+async function fetchData(){
+  const city=document.getElementById('cityInput').value.trim()||'Thiruvananthapuram';
+  const ov=document.getElementById('loadingOverlay');
+  const lt=document.getElementById('loadingText'),ls=document.getElementById('loadingSub');
+  ov.classList.remove('hidden');lt.textContent='ACQUIRING SENSOR DATA…';ls.textContent='';
+  try{
     let data;
-    if (demoMode) {
-      await new Promise(r => setTimeout(r, 900));
-      loadTxt.textContent = 'RUNNING HYPER-HEURISTIC MODEL...';
-      await new Promise(r => setTimeout(r, 700));
-      data = generateDemoData(city);
-    } else {
-      data = await fetchRealData(city);
-      loadTxt.textContent = 'RUNNING HYPER-HEURISTIC MODEL...';
-      await new Promise(r => setTimeout(r, 500));
+    if(demoMode){
+      ls.textContent='DEMO MODE';await new Promise(r=>setTimeout(r,500));
+      lt.textContent='RUNNING 7-ALGORITHM ENSEMBLE…';await new Promise(r=>setTimeout(r,700));
+      lt.textContent='BUILDING HEALTH INTELLIGENCE…';await new Promise(r=>setTimeout(r,400));
+      data=generateDemo(city);
+    }else{
+      ls.textContent='FETCHING OWM API…';data=await fetchRealData(city);
+      lt.textContent='RUNNING HYPER-HEURISTIC ENGINE…';await new Promise(r=>setTimeout(r,400));
     }
     updateUI(data);
-  } catch(e) {
-    loadTxt.textContent = 'ERROR: ' + e.message.toUpperCase();
-    await new Promise(r => setTimeout(r, 2000));
-    // fallback to demo
-    const data = generateDemoData(city);
-    updateUI(data);
+  }catch(e){
+    lt.textContent='ERROR — DEMO MODE';ls.textContent=e.message.toUpperCase();
+    await new Promise(r=>setTimeout(r,1600));updateUI(generateDemo(city));
   }
-
-  overlay.classList.add('hidden');
+  ov.classList.add('hidden');
 }
-
-// Auto-refresh every 5 minutes
-setInterval(() => { if (!document.getElementById('apiModal').classList.contains('hidden') === false) fetchData(); }, 300000);
+setInterval(fetchData,300000);
 </script>
 </body>
 </html>
